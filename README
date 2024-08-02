@@ -1,0 +1,14 @@
+This is a fork of aterm, a tiny, lean, mean basic xterm terminal-emulator 
+program from the early 2000s.  It's faster and uses much less resources than 
+most all modern terminal emulators!  It was originally pared with the AfterStep 
+window-manager, but they later replaced it with the bulkier rxvt terminal 
+emulator.  I use AfterStep (and have forked and improved it as well), since 
+I really prefer AfterStep+Aterm for their simplicity and low resource-usage, 
+and which already do everything I need from a wm & terminal!
+
+I'm adding it to my GitHub in order to release all my changes and improvements 
+made since I obtained the source in 2018.
+
+See the README.configure and INSTALL files for how to build and install on your 
+Linux/Unix system.
+
