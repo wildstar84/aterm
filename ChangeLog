@@ -1,9 +1,41 @@
-2014-08-02
+2024-08-02  JWT:
+
+	* Differentiate between the PRIMARY and CLIPBOARD buffers & support & set up 
+	  proper mouse and key bindings for both.  aterm can now take ownership of 
+	  the clipboard like other apps.
+
+	  aterm now supports the following additional and modified bindings:
+
+	  Alt+v (from many apps):  Paste primary
+
+	  Control+v (from most apps):  Paste Clipboard
+
+	  [Shift+]Control+Insert:  Copy selection to Clipboard (terms vary, so we 
+	  support both).
+
+	  Shift+Ctrl+Insert (from xterm, lxterminal):  Paste Clipboard
+
+	  Shift+Ctrl+c:  Copy selection to Clipboard.
+
+	  Button-1:  Clear selection & set selection anchor
+
+	  Button-2:  Past Primary
+
+	  Shift-Button-2:  Paste Clipboard
+
+	  Button-3:  (Select / extend selected) text from anchor to click point.
+
+	* Include the colon (":") in the default CUTCHARS list string (personal 
+	  preference).
+
+	* Remove unneeded and unavailable (at least on my modern Linux) the 
+	  requirement for <sys/stropts.h>.
 
 	* Start by adding pristine aterm source from circa 2018 to GitHub, 
 	  plus a README & Copyright (COPYING) file taken from the main program.
 
 ========================================================================
+
 2007-08-01  vae
 
 	* adding CL generation to makefiles

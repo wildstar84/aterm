@@ -91,7 +91,7 @@ static const char rcsid[] = "$Id: command.c,v 1.24 2006/06/26 18:01:20 sasha Exp
 
 #if defined (__svr4__) || defined (__lnx21__)
 # include <sys/resource.h>	/* for struct rlimit */
-/* JWT:WE DON'T HAVE THIS!: # include <sys/stropts.h>	** for I_PUSH */
+# include <sys/stropts.h>	/* for I_PUSH */
 # define _NEW_TTY_CTRL		/* to get proper defines in <termios.h> */
 #endif
 
@@ -672,8 +672,7 @@ get_tty(void)
 	print_error("can't open slave tty %s", ttydev);
 	exit(EXIT_FAILURE);
     }
-/* JWT:WE DON'T HAVE THIS!:  #if defined (__svr4__) || defined (__lnx21__) */
-#if 0
+#if defined (__svr4__) || defined (__lnx21__)
 /*
  * Push STREAMS modules:
  *    ptem: pseudo-terminal hardware emulation module.
@@ -1580,7 +1579,7 @@ lookup_key(XEvent * ev)
 		break;
 
 	    case XK_Insert:	/* Shift+Insert = paste mouse selection */
-		selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, XA_PRIMARY);
+		selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y);
 		return;
 		break;
 
@@ -1595,22 +1594,6 @@ lookup_key(XEvent * ev)
 		return;
 		break;
 	    }
-	} else if (PrivateModes & PrivMode_ShiftKeys) {  /* JWT:HANDLE OUR Shift-key SEQUENCES: */
-	    switch (keysym) {
-	    /* normal XTerm key bindings */
-	    case XK_Insert:
-		    if (ctrl) {  /* JWT:MAKE Shift+Ctrl+Insert PASTE CLIPBOARD (like lxterminal/"dtterm"): */
-				selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, aterm_XA_CLIPBOARD);
-				return;
-				break;
-			}
-		case XK_C: /* JWT:MAKE Shift+Ctrl+c COPY SELECTION TO CLIPBOARD (WE CAN'T USE Ctrl+c! ;) */
-			if (ctrl) {
-				selection_to_clipboard();
-				return;
-				break;
-			}
-		}
 	}
     }
 #ifdef UNSHIFTED_SCROLLKEYS
@@ -1632,26 +1615,6 @@ lookup_key(XEvent * ev)
 	}
     }
 #endif
-	else if (ctrl) {  /* JWT:HANDLE OUR Ctrl-key SEQUENCES: */
-	    switch (keysym) {
-		case XK_v:  /* JWT:MAKE Ctrl+v PASTE CLIPBOARD (like everyone else): */
-			selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, aterm_XA_CLIPBOARD);
-			return;
-			break;
-		case XK_Insert:	/* JWT:MAKE Ctrl+Insert COPY SELECTION TO CLIPBOARD: */
-			selection_to_clipboard();
-			return;
-			break;
-		}
-	}
-	else if (meta) {  /* JWT:HANDLE OUR Alt-key SEQUENCES: */
-	    switch (keysym) {
-		case XK_v:  /* JWT:MAKE Alt+v PASTE PRIMARY: */
-			selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, XA_PRIMARY);
-			return;
-			break;
-		}
-	}
 
     switch (keysym) {
     case XK_Print:
@@ -2489,11 +2452,11 @@ process_x_event(XEvent * ev)
 	break;
 
     case SelectionClear:
-	selection_clear(ev->xselection.selection);
+	selection_clear();
 	break;
 
     case SelectionNotify:
-	selection_paste(ev->xselection.requestor, ev->xselection.property, False);
+	selection_paste(ev->xselection.requestor, ev->xselection.property, True);
 	break;
 
     case SelectionRequest:
@@ -2757,9 +2720,7 @@ process_x_event(XEvent * ev)
 		    MEvent.button = ev->xbutton.button;
 		    mouse_report(&(ev->xbutton));
 #endif				/* MOUSE_REPORT_DOUBLECLICK */
-			MEvent.time = ev->xbutton.time;
-			return;
-		} else if (!bypass_keystate) {
+		} else {
 		    if (ev->xbutton.button != MEvent.button)
 			MEvent.clicks = 0;
 		    switch (ev->xbutton.button) {
@@ -2783,9 +2744,9 @@ process_x_event(XEvent * ev)
 			MEvent.button = Button3;
 			break;
 		    }
-			MEvent.time = ev->xbutton.time;
-			return;
 		}
+		MEvent.time = ev->xbutton.time;
+		return;
 	    }
 	}
 	if (isScrollbarWindow(ev->xany.window)) {
@@ -2945,18 +2906,13 @@ process_x_event(XEvent * ev)
 
 		switch (ev->xbutton.button) {
 		case Button1:
-			if (!bypass_keystate) {  /* JWT:DON'T DO IF MODIFIED (IE. Shift+Button3) */
-				selection_make(ev->xbutton.time, ev->xbutton.state);
-				return;  /* JWT:SO WE DON'T CLEAR SELECTION LATER BELOW! */
-			}
 		case Button3:
-			if (!bypass_keystate)  /* JWT:DON'T DO IF MODIFIED (IE. Shift+Button3) */
-				selection_make(ev->xbutton.time, ev->xbutton.state);
+		    selection_make(ev->xbutton.time, ev->xbutton.state);
 		    break;
+
 		case Button2:
 		    selection_request(ev->xbutton.time,
-					ev->xbutton.x, ev->xbutton.y, (ev->xbutton.state & ShiftMask)
-					? aterm_XA_CLIPBOARD : XA_PRIMARY);  /* JWT:Shift+Button2: PASTE CLIPBOARD! */
+				      ev->xbutton.x, ev->xbutton.y);
 		    break;
 #ifndef NO_MOUSE_WHEEL
 		case Button4:

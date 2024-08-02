@@ -991,7 +991,7 @@ resize_window1(unsigned int width, unsigned int height)
 
     /* scr_reset only works on the primary screen */
 	if (!first_time) {	/* this is not the first time thru */
-	    selection_clear(XA_PRIMARY);
+	    selection_clear();
 	    curr_screen = scr_change_screen(PRIMARY);
 	}
 
@@ -2125,7 +2125,7 @@ main(int argc, char *argv[])
 	XdisplayHeight = DisplayHeight (Xdisplay, Xscreen);
 
 #ifdef HAVE_AFTERIMAGE
-	/* JWT:UNDEFINED & DON'T NEED!:  dpy = Xdisplay ; */
+	dpy = Xdisplay ;
 	asv = create_asvisual (Xdisplay, Xscreen, Xdepth, NULL);
 	Xcmap = asv->colormap;
 	Xdepth = asv->visual_info.depth;

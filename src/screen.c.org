@@ -52,9 +52,6 @@ static const char rcsid[] = "$Id: screen.c,v 1.14 2006/03/29 22:32:07 sasha Exp 
 
 static screen_t    screen;
 
-/* JWT:HAVE TO KEEP A SEPARATE CLIPBOARD BUFFER (OTHERWISE SELECT OVERWRITES)!: */
-unsigned char *cbsel_text = NULL;
-int cbsel_len = 0;
 
 int colors_changed = 0 ; /* to indicate that foreground and background colors has changed*/
 
@@ -2812,8 +2809,7 @@ selection_paste(Window win, unsigned prop, int Delete)
 		{
 	    	selection.type++; 
     	    XConvertSelection(Xdisplay, XA_PRIMARY, aterm_XA_UTF8_STRING, aterm_XA_VT_SELECTION, TermWin.vt,selection.request_time);
-        }
-        else if (selection.type == 1) 
+        } else if (selection.type == 1) 
 		{
 	    	selection.type++;
     	    XConvertSelection(Xdisplay, XA_PRIMARY, XA_STRING, aterm_XA_VT_SELECTION, TermWin.vt,selection.request_time);
@@ -2854,8 +2850,7 @@ selection_paste(Window win, unsigned prop, int Delete)
 
 			if( !get_flags(wa.your_event_mask, PropertyChangeMask) ) /* We need to unregister the PropertyNotify event */
 				XSelectInput(Xdisplay, win, wa.your_event_mask);
-		}
-		else 
+    	}else 
 		{/* This is a normal 1-time paste */
 			if (Delete) 
 				XDeleteProperty(Xdisplay, win, prop);
@@ -2869,25 +2864,27 @@ selection_paste(Window win, unsigned prop, int Delete)
 
 /* ------------------------------------------------------------------------- */
 /*
- * Request the current primary selection be pasted in
+ * Request the current primary selection
  * EXT: button 2 release
  */
 /* PROTO */
 void
-selection_request(Time tm, int x, int y, Atom selbuffer)
+selection_request(Time tm, int x, int y)
 {
     selection.request_time = tm;
-    if (selbuffer == XA_PRIMARY && XGetSelectionOwner(Xdisplay, selbuffer) == None) 
+    if (selection.text != NULL) 
+	{
+		PasteIt(selection.text, selection.len);		/* internal selection */
+    } else if (XGetSelectionOwner(Xdisplay, XA_PRIMARY) == None) 
+	{
 		selection_paste(Xroot, XA_CUT_BUFFER0, False);
-    else 
+    } else 
 	{
         selection.type = 1;
 		/* "fix" for the high-ascii pasting? : */
 		/* may need to try all three : aterm_XA_UTF8_STRING, _XA_COMPAUND_TEXT and XA_STRING in that order */
-		if (selbuffer == aterm_XA_CLIPBOARD && cbsel_len > 0)
-			PasteIt(cbsel_text, cbsel_len);		/* internal selection */
-		else
-			XConvertSelection(Xdisplay, selbuffer, XA_STRING, selbuffer, TermWin.vt,tm);
+		XConvertSelection(Xdisplay, XA_PRIMARY, XA_STRING, aterm_XA_VT_SELECTION, TermWin.vt,tm);
+/*	XConvertSelection(Xdisplay, XA_PRIMARY, _XA_COMPAUND_TEXT, prop, TermWin.vt,tm); */
     }
 }
 
@@ -2982,23 +2979,12 @@ SX11Impl::getClipUTF8(long id)
  */
 /* PROTO */
 void
-selection_clear(Atom selbuffer)
+selection_clear(void)
 {
     D_SELECT((stderr, "selection_clear()"));
 
-	if (selbuffer == aterm_XA_CLIPBOARD) {  /* JWT:CLEARS OUR "CLIPBOARD": */
-        cbsel_len = 0;
-        if (cbsel_text != NULL) {
-            FREE(cbsel_text);
-            cbsel_text = NULL;
-        }
-		return;
-	}
-
-	/* JWT:(ELSE) CLEAR THE PRIMARY SELECTION: */
     if (selection.text)
-        FREE(selection.text);
-
+	FREE(selection.text);
     selection.text = NULL;
     selection.len = 0;
     CLEAR_SELECTION;
@@ -3023,7 +3009,7 @@ selection_make(Time tm, unsigned int key_state)
     case SELECTION_CONT:
 	break;
     case SELECTION_INIT:
-/*	JWT:REMOVED SO LBUTTON1 CAN SET SELECTION ANCHOR!: CLEAR_SELECTION; */
+	CLEAR_SELECTION;
     /* FALLTHROUGH */
     case SELECTION_BEGIN:
 	selection.op = SELECTION_DONE;
@@ -3034,7 +3020,7 @@ selection_make(Time tm, unsigned int key_state)
     selection.op = SELECTION_DONE;
 
     if (selection.clicks == 4)
-        return;			/* nothing selected, go away */
+	return;			/* nothing selected, go away */
 
     i = (selection.end.row - selection.beg.row + 1) * (TermWin.bcol + 1) + 1;
     str = MALLOC(i * sizeof(char));
@@ -3062,65 +3048,34 @@ selection_make(Time tm, unsigned int key_state)
     t = &(screen.text[row][col]);
     end_col = screen.tlen[row];
     if (end_col == -1 || selection.end.col <= end_col)
-		end_col = selection.end.col;
-
+	end_col = selection.end.col;
     MIN_IT(end_col, TermWin.bcol);	/* CHANGE */
     for (; col < end_col; col++)
-		*str++ = *t++;
-
+	*str++ = *t++;
     if (end_col != selection.end.col)
-		*str++ = '\n';
-
+	*str++ = '\n';
     *str = '\0';
     if ((i = strlen((char *) new_selection_text)) == 0) {
-		FREE(new_selection_text);
-		return;
+	FREE(new_selection_text);
+	return;
     }
     selection.len = i;
     if (selection.text)
-        FREE(selection.text);
-
+	FREE(selection.text);
     selection.text = new_selection_text;
 
     // selecting with ALT will put the text to clipboard
-    if (key_state & (Mod1Mask | Mod3Mask))
-    {
+    if (key_state & Mod1Mask) {
         XSetSelectionOwner(Xdisplay, aterm_XA_CLIPBOARD, TermWin.vt, tm);
-        cbsel_len = i;
-        if (cbsel_text != NULL) {
-            FREE(cbsel_text);
-            cbsel_text = NULL;
-		}
-        if (i > 0) {
-            cbsel_text = MALLOC(i * sizeof(char) + 1);
-            strcpy((char *) cbsel_text, (char *) new_selection_text);
-        }
-    }
-    else
+    } else {
         XSetSelectionOwner(Xdisplay, XA_PRIMARY, TermWin.vt, tm);
+    }
 	
     if (XGetSelectionOwner(Xdisplay, XA_PRIMARY) != TermWin.vt)
-        print_error("can't get primary selection");
-
-/* JWT:???:    XChangeProperty(Xdisplay, Xroot, XA_CUT_BUFFER0, XA_STRING, 8,
-		    PropModeReplace, selection.text, selection.len); */
+	print_error("can't get primary selection");
+    XChangeProperty(Xdisplay, Xroot, XA_CUT_BUFFER0, XA_STRING, 8,
+		    PropModeReplace, selection.text, selection.len);
     D_SELECT((stderr, "selection_make(): selection.len=%d", selection.len));
-}
-
-/* JWT:(NEW FUNCTION) COPY SELECTION TO CLIPBOARD (BY TAKING OWNERSHIP OF IT): */
-void selection_to_clipboard()
-{
-	XSetSelectionOwner(Xdisplay, aterm_XA_CLIPBOARD, TermWin.vt, CurrentTime);
-	/* JWT:MUST COPY TO SEPARATE BUFFER, SINCE JUST OWNING IT, JOINS IT AT THE HIP W/PRIMARY!: */
-    cbsel_len = selection.len;
-    if (cbsel_text != NULL) {
-        FREE(cbsel_text);
-        cbsel_text = NULL;
-    }
-    if (selection.len > 0) {
-        cbsel_text = MALLOC(selection.len * sizeof(char) + 1);
-        strcpy((char *) cbsel_text, (char *) selection.text);
-    }
 }
 
 /* ------------------------------------------------------------------------- */
@@ -3572,44 +3527,42 @@ selection_send(XSelectionRequestEvent * rq)
 
     if (rq->target == aterm_XA_TARGETS) {
 #ifdef USE_ATOM32		
-		target_list[0] = (Atom32) aterm_XA_TARGETS;
-		target_list[1] = (Atom32) XA_STRING;
-		target_list[2] = (Atom32) aterm_XA_TEXT;
-		target_list[3] = (Atom32) _XA_COMPAUND_TEXT;
-		XChangeProperty(Xdisplay, rq->requestor, rq->property, rq->target,
-				(8 * sizeof(target_list[0])), PropModeReplace,
-				(unsigned char *)target_list,
-				(sizeof(target_list) / sizeof(target_list[0])));
+	target_list[0] = (Atom32) aterm_XA_TARGETS;
+	target_list[1] = (Atom32) XA_STRING;
+	target_list[2] = (Atom32) aterm_XA_TEXT;
+	target_list[3] = (Atom32) _XA_COMPAUND_TEXT;
+	XChangeProperty(Xdisplay, rq->requestor, rq->property, rq->target,
+			(8 * sizeof(target_list[0])), PropModeReplace,
+			(unsigned char *)target_list,
+			(sizeof(target_list) / sizeof(target_list[0])));
 #else	  
-		target_list[0] =  aterm_XA_TARGETS;
-		target_list[1] =  XA_STRING;
-		target_list[2] =  aterm_XA_TEXT;
-		target_list[3] =  _XA_COMPAUND_TEXT;
-		XChangeProperty(Xdisplay, rq->requestor, rq->property, XA_ATOM,
-				32, PropModeReplace,
-	 			(unsigned char *)target_list,
-	 			(sizeof(target_list) / sizeof(target_list[0])));
+	target_list[0] =  aterm_XA_TARGETS;
+	target_list[1] =  XA_STRING;
+	target_list[2] =  aterm_XA_TEXT;
+	target_list[3] =  _XA_COMPAUND_TEXT;
+	XChangeProperty(Xdisplay, rq->requestor, rq->property, XA_ATOM,
+			32, PropModeReplace,
+ 			(unsigned char *)target_list,
+ 			(sizeof(target_list) / sizeof(target_list[0])));
 #endif	 
-		ev.xselection.property = rq->property;
+	ev.xselection.property = rq->property;
     } else if (rq->target == XA_STRING
 	       || rq->target == _XA_COMPAUND_TEXT
 	       || rq->target == aterm_XA_TEXT) {
-		if (rq->target == XA_STRING) {
-		    style = XStringStyle;
-		    target = XA_STRING;
-		} else {
-		    target = _XA_COMPAUND_TEXT;
-		    style = (rq->target == _XA_COMPAUND_TEXT) ? XCompoundTextStyle
-			: XStdICCTextStyle;
-		}
-		cl[0] = (rq->selection == aterm_XA_CLIPBOARD && cbsel_len > 0)
-				? cbsel_text : selection.text;  /* JWT:(OUR) CLIPBOARD, OR PRIMARY. */
-
-		XmbTextListToTextProperty(Xdisplay, cl, 1, style, &ct);
-		XChangeProperty(Xdisplay, rq->requestor, rq->property,
-				target, 8, PropModeReplace,
-				ct.value, ct.nitems);
-		ev.xselection.property = rq->property;
+	if (rq->target == XA_STRING) {
+	    style = XStringStyle;
+	    target = XA_STRING;
+	} else {
+	    target = _XA_COMPAUND_TEXT;
+	    style = (rq->target == _XA_COMPAUND_TEXT) ? XCompoundTextStyle
+		: XStdICCTextStyle;
+	}
+	cl[0] = selection.text;
+	XmbTextListToTextProperty(Xdisplay, cl, 1, style, &ct);
+	XChangeProperty(Xdisplay, rq->requestor, rq->property,
+			target, 8, PropModeReplace,
+			ct.value, ct.nitems);
+	ev.xselection.property = rq->property;
     }
     XSendEvent(Xdisplay, rq->requestor, False, 0, &ev);
 }
