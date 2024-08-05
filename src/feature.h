@@ -250,6 +250,7 @@
  *  A value of 0 disables menuBar all together.
  *  Note that the amount of memory overhead is the same for any value >= 2.
  */
+#define MENUBAR 1
 #define MENUBAR_MAX 8
 
 /*

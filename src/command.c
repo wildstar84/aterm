@@ -2053,6 +2053,12 @@ cmd_write(const unsigned char *str, unsigned int count)
 {
     int             n;
 
+    /* JWT:ADDED TO HANDLE OUR Alt-key SEQUENCES IN MENUS: */
+    if (count == 1 && str && str[0] == 118 && str[1] == 0) {  /* "^@v" (Alt+v):  Paste PRIMARY: */
+    	   selection_request(CurrentTime, 0, 0, XA_PRIMARY);
+    	   return;
+    }
+
     n = (count - (cmdbuf_ptr - cmdbuf_base));
 /* need to insert more chars that space available in the front */
     if (n > 0) {
@@ -2126,7 +2132,7 @@ cmd_getc(void)
     }
 /* characters already read in */
     if (cmdbuf_ptr < cmdbuf_endp)
-	goto Return_Char;
+		goto Return_Char;
 
     for (;;) {
 		struct timeval *timeout = &value;
@@ -2147,7 +2153,7 @@ cmd_getc(void)
 #endif
 	/* in case button actions pushed chars to cmdbuf */
 	    if (cmdbuf_ptr < cmdbuf_endp)
-		goto Return_Char;
+			goto Return_Char;
 	}
 #ifndef NO_SCROLLBAR_BUTTON_CONTINUAL_SCROLLING
 	if (scrollbar_isUp()) {
@@ -2221,7 +2227,7 @@ cmd_getc(void)
 		}
 	/* some characters read in */
 	    if (count != BUFSIZ)
-		goto Return_Char;
+			goto Return_Char;
 	}
     /* select statement timed out - better update the screen */
 	if (retval == 0) 
@@ -3853,6 +3859,15 @@ tt_write(const unsigned char *d, int len)
  * it all anyway.
  */
     if (len > 0) {
+		if (d[0] == 30) {  /* JWT:ADDED TO HANDLE OUR Ctrl-key SEQUENCES IN MENUS: */
+			if (d[1] == 67) {                       /* "^^C" (Shift-Ctrl-C):  Copy selection to CLIPBOARD: */
+				selection_to_clipboard();
+				return;
+			} else if (d[1] == 118 || d[1] == 86) { /* "^^v" (Ctrl-v):  Paste CLIPBOARD: */
+				selection_request(CurrentTime, 0, 0, aterm_XA_CLIPBOARD);
+				return;
+			}
+		}
 	if (v_bufend < v_bufptr + len) {	/* we've run out of room */
 	    if (v_bufstr != v_buffer) {
 	    /* there is unused space, move everything down */

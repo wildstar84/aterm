@@ -1,0 +1,74 @@
+#### SEE ALSO the README.menus text file for more details! ####
+#This is my standard aterm/"dtterm" menubar, documenting how to create menus:
+#This particular example is based of the old Sun Solaris "dtterm" terminal
+#menubar, see here for image!:  https://deskto.ps/u/fm/d/9woboq
+#
+#To load this manually, start aterm, and then in aterm:
+#cd to the directory this file is in and run:
+#$>./menu [read:/home/.../this/directory/mymenu]
+#
+#To make this menu load when restarting aterm (with -mb), add following
+#line to your ~/.Xdefaults file:
+#aterm.menu: mymenu
+#
+#Then run (to reload your .Xdefaults config):
+#$>xrdb ~/.Xdefaults
+#
+#Then in your ~/.bashrc file, add the line:
+#export ATERMPATH=/home/you/.config/aterm
+#
+#Create that directory, and copy mymenu.menu to there.
+#
+#Then reload bash:
+#$>cd
+#$>. ./.bashrc
+#
+#Now restart aterm with menubars on:
+#$>aterm -mb &
+#$>-OR- aterm & #and press Shift+Control+M in aterm to toggle the menubar on.
+#and you should be all set with a "dtterm-ish" (with a menubar) looking aterm!
+#
+#
+#The actual Menubar-creating commands are (highly-annotated) here:
+#
+#Replace any existing menubars (should always do this):
+[clear]
+#Create the menubar, called "bar1":
+[menu:bar1]
+#Title to appear in middle of bar:
+[title:dtterm]
+#Add first menubutton:
+/Window/*
+#Add menuitems to that button's menu:
+#For example, add 1st menuitem "New" that launches another aterm:
+{New} aterm &\r
+#The menu command sends  Control+C escape sequence to terminal (Break):
+#Note, the {^C} in brackets just appears with "Cancel" on the menu to remind 
+#the user of the keyboard sequence but otherwise is just free-text.
+{Cancel}{^C} ^C
+#Sends "cls\n" command to the shell:
+{Clear}{} cls\r
+#Add a separator:
+{-}
+{Exit} exit\r
+/Edit/*
+#This would send a backspace (char 7f) to the terminal:
+#{Backspace}	0x7f
+#{-}
+#This sends a Control-C (Shift+Control+c) as if user typed this sequence:
+{Copy}{^C} ^^C
+{-}
+#This sends an Alt+v as if user typed this sequence:
+{Paste Primary}{@v} ^@v
+#This sends a Control_v as if user typed this sequence:
+{Paste Clipboard}{^v} ^^V
+/Options/*
+{Menu Bar}{^M} ^^M
+{Scroll Bar}{^S} ^^S
+#This sends a font-change ANSI escape-sequence to the terminal:
+{Font Size}	^@\E]50;#+
+{Reset}{} stty sane\r
+#This displays the menubar (with 2 buttons:  [File] and [Edit]):
+[show]
+#This ends the commands to create the menubar:
+[done:bar1]

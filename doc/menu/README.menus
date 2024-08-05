@@ -1,0 +1,54 @@
+I created this README to explain how to set up a "dtterm-like" menubar in 
+aterm, after finding essentially nothing on Google, or in the other data here!  
+When I finally figured out through much t&e how to load the example menu files 
+included, none of them seemed to work and it was difficult making heads or 
+tails of what they contained.  I ended up sifting through and groking the code 
+in menubar.cc and the features.h file and determined that I had to add a line 
+to the latter allowing menus to even be processed:  "#define MENUBAR 1", just 
+above the line "#define MENUBAR_MAX 8".  I also had to define an environment 
+variable in my .bashrc file specifying a directory for aterm to search for 
+menu files in:  "export ATERMPATH=/home/me/.config/aterm", create that 
+directory, and place my .menu file there.  It's very close to the one I added 
+to the example ones (with lots of explanitory comments) called "mymenu.menu".
+
+The menu files specify the menubar(s), each containing menu-buttons, each 
+containing menu-items (with names and escape-sequences or commands).  The 
+layout will appear as:  [[menu-button1][menu-btn2][...] <^v>] in the top row 
+of your terminal         [menu-item1]  (drops down when menu-button1 pressed).
+                         [menu-item2]...
+
+The four goofey looking arrow icons on the right edge default to pressing 
+the left, right, down, and up arrow keys respecively, and can also be 
+configured in the .menu file - the example.menu file shows an example for this 
+on line 78 rebinding them for Emacs control-sequences (I haven't tried it).
+
+It took a lot of groking to determine how to define and differentiate between 
+the menu-bar(s), menu-buttons, and menu-items in the menu-file.  Please start 
+with and reading through my working example file:  mymenu.menu and the 
+comments before attempting to try the others (which seem to be geared toward 
+specific ancient applications, which most of us don't even have anymore).
+
+Also, be aware that these are not mouse-button driven popup menus like those 
+that come with xterm and friends but are a for creating custom user menus, 
+like those used by the old Solaris/CDE "dtterm" terminal (the last terminal 
+app. that I fondly used back in the day)!  Even though aterm supports multiple 
+menubars (up to 8 by default - if menubars are enabled in features.h BEFORE 
+compiling), I would generally recommend sticking with at most 1 menubar and 
+simply putting all my menus, ie [File], [Edit], [Help], etc. there.  Each 
+menu-item can have additional submenus configured if needed.  See the 
+example menu file "terminal.menu" that defines an example submenu with four 
+additional menu-items called "../Keys/*".  Submenus are defined using the 
+"reverse directory-tree" syntax of "../submenuname/*" and are terminated by 
+the line "../".
+
+Menu actions are a string of either a shell command followed by "\r" (not "\n") 
+valid ANSI-Terminal escape sequences (usually starting with "^@\E"), or 
+special codes I defined to support the control sequences I added for the 
+standard "Copy", "Paste Primary", and "Paste Clipboard" keyboard commands:
+^^C (Control+C) (actually Shift+Control+c), as the C is capitalized and 
+contrasted with ^C (Control+c), which sends a cancel/break/abort to the 
+terminal), ^@v (Alt+v), and ^^v (Control+v) respectively (Note: Only these 
+meta-letter combinations are currently supported.  I also added support for hex 
+characters, specified as "0x##" for specifying character#s 128-255, as 
+originally only 2-digit octal sequences (\0##) were interpreted as characters.  
+You will see all these in my mymenu.menu example file.

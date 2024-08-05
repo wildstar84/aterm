@@ -153,6 +153,30 @@ menuitem_free(menu_t * menu, menuitem_t * item)
 #endif
 }
 
+/* JWT:ADDED 20240801 TO SUPPORT HEX CHARS BY CONVERTING 0x## TO char=='#'
+   BEFORE, THERE WAS NO WAY (KNOWN TO ME) TO INCLUDE CHARS ABOVE 127 IN MENU ACTIONS!
+*/
+int hex2char (char * str, int len)
+{
+	short i, j;
+	j = 0;
+	i = 0;
+	char * buf[3];
+	while (i < len && j < 80) {
+		if (str[i] == '0' && i+3 < len && str[i+1] == 'x') {
+			str[i+2] = (str[i+2]<58) ? str[i+2] - 48 : str[i+2] - 87;
+			str[i+3] = (str[i+3]<58) ? str[i+3] - 48 : str[i+3] - 87;
+			sprintf(buf, "%d", str[i+2]*16 + str[i+3]);
+			str[j++] = atoi(buf);
+			i += 4;
+		} else {
+			str[j++] = str[i++];
+		}
+	}
+	str[j] = '\0';
+	return j;
+}
+
 /*
  * sort command vs. terminal actions and
  * remove the first character of STR if it's '\0'
@@ -170,6 +194,7 @@ action_type(action_t * action, unsigned char *str)
 #else
     len = Str_escaped((char *) str);
 #endif
+	len = hex2char(str, len);  /* JWT:ADDED TO CONVERT HEX CHARS IN MENUITEM-ACTION STRINGS TO ACTUAL CHARS. */
 
     if (!len)
 	return -1;
@@ -1469,7 +1494,7 @@ menubar_read(const char *filename)
 
     file = File_find(filename, ".menu");
     if (file == NULL || (fp = fopen(file, "rb")) == NULL)
-	return;
+        return;
 
 #if (MENUBAR_MAX > 1)
 /* semi-colon delimited */
@@ -1757,7 +1782,8 @@ menubar_dispatch(char *str)
 
 #if (MENUBAR_MAX > 1)
     if (CurrentBar == NULL)
-	return;
+        return;
+
     if (menu_readonly) {
 #ifdef DEBUG_MENUBAR_STACKING
 	printf("menus are read%s\n", menu_readonly ? "only" : "/write");
@@ -1957,7 +1983,8 @@ menubar_expose(void)
 
 	gcvalue.foreground = (Xdepth <= 2 ?
 			      PixColors[Color_fg] :
-			      PixColors[Color_Black]);
+/* JWT:CHGD. TO NEXT (CAN'T SEE WHAT WE'RE DOIN')!:			      PixColors[Color_Black]); */
+			      PixColors[Color_White]);
 	menubarGC = XCreateGC(Xdisplay, menuBar.win,
 			      GCForeground | GCFont,
 			      &gcvalue);
