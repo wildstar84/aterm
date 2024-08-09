@@ -52,7 +52,6 @@ autoconf/config.h.in: autoconf/configure.in autoconf/acconfig.h
 installdirs:
 	$(MKDIR) $(DESTDIR)$(bindir)
 	$(MKDIR) $(DESTDIR)$(mandir)
-	$(MKDIR) $(DESTDIR)$(datadir)
 
 install: installdirs
 	@for I in $(subdirs); do (cd $$I; $(MAKE) DESTDIR=$(DESTDIR) $@ || exit 1); done

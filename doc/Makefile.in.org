@@ -3,7 +3,6 @@
 @MCOMMON@
 
 srcdir = @srcdir@
-datadir = @datadir@
 VPATH = @srcdir@
 
 basedir = ..
@@ -17,7 +16,7 @@ dummy:
 #
 
 DIST_ETC  = etc/rxvt.termcap etc/rxvt.terminfo etc/XTerm.ad
-DIST_MENU = menu/menu menu/mymenu.menu menu/example.menu menu/rxvt.menu menu/terminal.menu\
+DIST_MENU = menu/menu menu/example.menu menu/rxvt.menu menu/terminal.menu\
 	    menu/jedmenu.sl
 DIST	  = Makefile.in README.thai README.greek README.menu README.xvt FAQ aterm.1
 	     
@@ -28,23 +27,12 @@ all:
 
 distclean:
 	$(RMF) Makefile
-#JWT:ADDED TO GET RID OF OUR DOCS DIRECTORY, SO make install WON'T FAIL
-#RECREATING IT!:
-	$(RMF)r $(DESTDIR)$(datadir)/aterm
 
 install:
 	$(INSTALL_DATA) aterm.1 $(DESTDIR)$(mandir)/$(manprefix)aterm.$(manext)
-#JWT:ADDED NEXT 5 TO SAVE OUR MENUS SCRIPT & DOCS, SO USER CAN GET TO THEM:
-	$(INSTALL_DATA) menu/aterm_menus.sh $(DESTDIR)$(bindir)/aterm_menus.sh
-	chmod 755 $(DESTDIR)$(bindir)/aterm_menus.sh
-	mkdir $(DESTDIR)$(datadir)/aterm
-	$(INSTALL_DATA) menu/mymenu.menu $(DESTDIR)$(datadir)/aterm/mymenu.menu
-	$(INSTALL_DATA) menu/README.menus $(DESTDIR)$(datadir)/aterm/README.menus
 
 uninstall:
 	-cd $(mandir); $(RMF) $(manprefix)aterm.$(manext)
-#JWT:REMOVE OUR MENUS SCRIPT (SINCE IT DOES NOT ORIGINATE IN src/:
-	-cd $(bindir); $(RMF) aterm_menus.sh
 
 distdirs:
 	mkdir $(basedir)/../$(VERNAME)/$(thisdir)
