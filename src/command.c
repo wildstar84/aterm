@@ -1604,6 +1604,22 @@ lookup_key(XEvent * ev)
 				return;
 				break;
 			}
+#ifdef MENUBAR
+		case XK_M: /* JWT:MAKE Shift-Ctrl-M TOGGLE THE VISIBILITY OF THE MENUBAR(S): */
+		{
+				int toggled = menubar_mapping(0);
+				if (toggled == 0)
+					menubar_mapping(1);
+				return;
+		}
+#endif
+		case XK_S: /* JWT:MAKE Shift-Ctrl-S TOGGLE THE VISIBILITY OF THE SCROLLBAR: */
+		{
+				int toggled = scrollbar_mapping(0);
+				if (toggled == 0)
+					scrollbar_mapping(1);
+				return;
+		}
 		case XK_C: /* JWT:MAKE Shift+Ctrl+c COPY SELECTION TO CLIPBOARD (WE CAN'T USE Ctrl+c! ;) */
 			if (ctrl) {
 				selection_to_clipboard();
@@ -3860,10 +3876,22 @@ tt_write(const unsigned char *d, int len)
  */
     if (len > 0) {
 		if (d[0] == 30) {  /* JWT:ADDED TO HANDLE OUR Ctrl-key SEQUENCES IN MENUS: */
+			/* JWT:NOTE: UNLIKE REGULAR CONTROL-LETTER SEQUENCES, IE. "^C" THESE ARE **CASE-SENSITIVE!** */
 			if (d[1] == 67) {                       /* "^^C" (Shift-Ctrl-C):  Copy selection to CLIPBOARD: */
 				selection_to_clipboard();
 				return;
-			} else if (d[1] == 118 || d[1] == 86) { /* "^^v" (Ctrl-v):  Paste CLIPBOARD: */
+#ifdef MENUBAR
+			} else if (d[1] == 77) {                /* "^^M" (Shift-Ctrl-M):  Hide the menubar(s): */
+				menubar_mapping(0);
+				return;
+#endif
+			} else if (d[1] == 83) {                /* "^^S" (Shift-Ctrl-S):  Toggle the scrollbar: */
+				int toggled = scrollbar_mapping(0);
+				if (toggled == 0)
+					scrollbar_mapping(1);
+				return;
+			} else if (d[1] == 118 || d[1] == 86) { /* "^^v" (Ctrl-v): (LOWER-CASE=NO Shift!) Paste CLIPBOARD: */
+				/* BUT IN THIS CASE WE ACCEPT EITHER (WITH OR WITHOUT Shift): */
 				selection_request(CurrentTime, 0, 0, aterm_XA_CLIPBOARD);
 				return;
 			}
