@@ -43,7 +43,7 @@
 
 
 #ifndef lint
-static const char rcsid[] = "$Id: command.c,v 1.24 2006/06/26 18:01:20 sasha Exp $";
+/* JWT:DEPRECIATED? - JUST CAUSES WARNINGS!: static const char rcsid[] = "$Id: command.c,v 1.24 2006/06/26 18:01:20 sasha Exp $"; */
 #endif
 
 /*{{{ includes: */
@@ -70,6 +70,9 @@ static const char rcsid[] = "$Id: command.c,v 1.24 2006/06/26 18:01:20 sasha Exp
 #endif
 
 #include <X11/keysym.h>
+#ifdef HAVE_XKBLIB_H
+#include <X11/XKBlib.h>
+#endif
 #ifndef NO_XLOCALE
 # if (XtSpecificationRelease < 6)
 #  define NO_XLOCALE
@@ -1185,7 +1188,11 @@ get_ourmods(void)
 	for (j = 0; j < map->max_keypermod; j++, k++) {
 	    if (kc[k] == 0)
 		break;
+#ifdef HAVE_XKBLIB_H
+	    switch (XkbKeycodeToKeysym(Xdisplay, kc[k], 0, 0)) {
+#else
 	    switch (XKeycodeToKeysym(Xdisplay, kc[k], 0)) {
+#endif
 	    case XK_Num_Lock:
 		if (!got_numlock) {
 		    ModNumLockMask = modmasks[i - 3];
@@ -2083,7 +2090,7 @@ cmd_write(const unsigned char *str, unsigned int count)
     /* JWT:ADDED TO HANDLE OUR Alt-key SEQUENCES IN MENUS: */
     if (count == 1 && str && str[0] == 118 && str[1] == 0) {  /* "^@v" (Alt+v):  Paste PRIMARY: */
     	   selection_request(CurrentTime, 0, 0, XA_PRIMARY);
-    	   return;
+    	   return 0;
     }
 
     n = (count - (cmdbuf_ptr - cmdbuf_base));
@@ -2690,7 +2697,7 @@ process_x_event(XEvent * ev)
      case ReparentNotify:
 #ifdef TRANSPARENT
          {
-	    int n;
+	    unsigned int n;
 	    XWindowAttributes attr ;
             int (*oldXErrorHandler) (Display *, XErrorEvent *) =
 		  XSetErrorHandler (pixmap_error_handler);
