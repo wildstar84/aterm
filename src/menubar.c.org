@@ -22,7 +22,7 @@
  *----------------------------------------------------------------------*/
 
 #ifndef lint
-/* static const char rcsid[] = "$Id: menubar.c,v 1.1.1.1 2004/11/10 17:21:46 sasha Exp $"; */
+static const char rcsid[] = "$Id: menubar.c,v 1.1.1.1 2004/11/10 17:21:46 sasha Exp $";
 #endif
 
 #include "rxvt.h"		/* NECESSARY */
@@ -59,7 +59,6 @@ struct menu_t;
 
 static int      menu_readonly = 1;	/* okay to alter menu? */
 static int      Arrows_x = 0;
-#ifndef NO_MENUBAR_ARROWS
 static const struct {
     char            name;	/* (l)eft, (u)p, (d)own, (r)ight */
     unsigned char   str[4];	/* str[0] = strlen (str+1) */
@@ -69,7 +68,6 @@ static const struct {
     { 'd', "\003\033[B" },
     { 'r', "\003\033[C" }
 };
-#endif
 
 #if (MENUBAR_MAX > 1)
 static int      Nbars = 0;
@@ -155,28 +153,6 @@ menuitem_free(menu_t * menu, menuitem_t * item)
 #endif
 }
 
-/* JWT:ADDED 20240801 TO SUPPORT HEX CHARS BY CONVERTING 0x## TO CORRESPONDING CHARACTER: */
-int hex2char (unsigned char * str, int len)
-{
-	short i, j;
-	j = 0;
-	i = 0;
-	char buf[5];
-	while (i < len && j < 80) {
-		if (str[i] == '0' && i+3 < len && str[i+1] == 'x') {
-			str[i+2] = (str[i+2]<58) ? str[i+2] - 48 : str[i+2] - 87;
-			str[i+3] = (str[i+3]<58) ? str[i+3] - 48 : str[i+3] - 87;
-			sprintf(buf, "%d", str[i+2]*16 + str[i+3]);
-			str[j++] = atoi(buf);
-			i += 4;
-		} else {
-			str[j++] = str[i++];
-		}
-	}
-	str[j] = '\0';
-	return j;
-}
-
 /*
  * sort command vs. terminal actions and
  * remove the first character of STR if it's '\0'
@@ -194,7 +170,6 @@ action_type(action_t * action, unsigned char *str)
 #else
     len = Str_escaped((char *) str);
 #endif
-	len = hex2char(str, len);  /* JWT:ADDED TO CONVERT HEX CHARS IN MENUITEM-ACTION STRINGS TO ACTUAL CHARS. */
 
     if (!len)
 	return -1;
@@ -249,13 +224,11 @@ int
 menuarrow_find(char name)
 {
 #ifdef MENUBAR
-#ifndef NO_MENUBAR_ARROWS
     int             i;
 
     for (i = 0; i < NARROWS; i++)
 	if (name == Arrows[i].name)
 	    return i;
-#endif
 #endif
     return -1;
 }
@@ -266,7 +239,6 @@ void
 menuarrow_free(char name)
 {
 #ifdef MENUBAR
-#ifndef NO_MENUBAR_ARROWS
     int             i;
 
     if (name) {
@@ -289,7 +261,6 @@ menuarrow_free(char name)
 	    menuarrow_free(Arrows[i].name);
     }
 #endif
-#endif
 }
 
 /* PROTO */
@@ -297,7 +268,6 @@ void
 menuarrow_add(char *string)
 {
 #ifdef MENUBAR
-#ifndef NO_MENUBAR_ARROWS
     int             i;
     unsigned        xtra_len;
     char           *p;
@@ -369,13 +339,11 @@ menuarrow_add(char *string)
 	   cur->len, cur->len, (cur->str ? cur->str : ""));
     for (i = 0; i < NARROWS; i++) {
 	cur = &(parse[i]);
-#ifndef NO_MENUBAR_ARROWS
 	printf("<%c>(len %d) = %.*s\n",
 	       Arrows[i].name,
 	       cur->len,
 	       cur->len,
 	       (cur->str ? cur->str : ""));
-#endif
     }
     cur = &end;
     printf("<e>(len %d) = %.*s\n",
@@ -419,7 +387,6 @@ menuarrow_add(char *string)
 	if (action_type(&(CurrentBar->arrows[i]), str) < 0)
 	    FREE(str);
     }
-#endif
 #endif
 }
 
@@ -686,7 +653,7 @@ menu_delete(menu_t * menu)
 
 /* PROTO */
 menu_t         *
-menu_add(menu_t * parent, char *path, Bool rjust)
+menu_add(menu_t * parent, char *path)
 {
 #ifdef MENUBAR
     menu_t         *menu;
@@ -706,7 +673,7 @@ menu_add(menu_t * parent, char *path, Bool rjust)
 	    if (path[0] == '\0')
 		return NULL;
 
-	    parent = menu_add(parent, path, False);
+	    parent = menu_add(parent, path);
 	    path = (p + 1);
 	}
     }
@@ -736,30 +703,29 @@ menu_add(menu_t * parent, char *path, Bool rjust)
 
     menu->win = None;
     menu->x = menu->y = menu->w = menu->h = 0;
-    menu->right_just = rjust;
     menu->item = NULL;
 
 /* add to tail of list */
     if (parent == NULL) {
-		menu->prev = CurrentBar->tail;
-		if (CurrentBar->tail != NULL)
-		    CurrentBar->tail->next = menu;
-		CurrentBar->tail = menu;
-		if (CurrentBar->head == NULL)
-		    CurrentBar->head = menu;	/* fix head */
-		if (menu->prev)
-	        menu->x = (menu->prev->x + menu->prev->len + HSPACE);
+	menu->prev = CurrentBar->tail;
+	if (CurrentBar->tail != NULL)
+	    CurrentBar->tail->next = menu;
+	CurrentBar->tail = menu;
+	if (CurrentBar->head == NULL)
+	    CurrentBar->head = menu;	/* fix head */
+	if (menu->prev)
+	    menu->x = (menu->prev->x + menu->prev->len + HSPACE);
     } else {
-		menuitem_t     *item;
+	menuitem_t     *item;
 
-		item = menuitem_add(parent, path, "", "");
-		if (item == NULL) {
-		    FREE(menu);
-		    return parent;
-		}
-		assert(item->entry.type == MenuLabel);
-		item->entry.type = MenuSubMenu;
-		item->entry.submenu.menu = menu;
+	item = menuitem_add(parent, path, "", "");
+	if (item == NULL) {
+	    FREE(menu);
+	    return parent;
+	}
+	assert(item->entry.type == MenuLabel);
+	item->entry.type = MenuSubMenu;
+	item->entry.submenu.menu = menu;
     }
 
     return menu;
@@ -1446,13 +1412,13 @@ menubar_dump(FILE * fp)
     bar = CurrentBar->prev;
     do {
 	menu_t         *menu;
+	int             i;
 
 	fprintf(fp, "[menu:%s]\n", bar->name);
 
 	if (bar->title != NULL)
 	    fprintf(fp, "[title:%s]\n", bar->title);
 
-#ifndef NO_MENUBAR_ARROWS
 	for (i = 0; i < NARROWS; i++) {
 	    switch (bar->arrows[i].type) {
 	    case MenuTerminalAction:
@@ -1462,7 +1428,6 @@ menubar_dump(FILE * fp)
 		break;
 	    }
 	}
-#endif
 	fprintf(fp, "\n");
 
 	for (menu = bar->head; menu != NULL; menu = menu->next)
@@ -1504,7 +1469,7 @@ menubar_read(const char *filename)
 
     file = File_find(filename, ".menu");
     if (file == NULL || (fp = fopen(file, "rb")) == NULL)
-        return;
+	return;
 
 #if (MENUBAR_MAX > 1)
 /* semi-colon delimited */
@@ -1603,7 +1568,6 @@ menubar_dispatch(char *str)
     static menu_t  *BuildMenu = NULL;	/* the menu currently being built */
     int             n, cmd;
     char           *path, *name, *name2;
-    Bool right_just = False;
 
     if (menubar_visible() && ActiveMenu != NULL)
 	menubar_expose();
@@ -1612,10 +1576,6 @@ menubar_dispatch(char *str)
 
     cmd = *str;
     switch (cmd) {
-	case '>':
-/* ADD MENU TO RIGHT SIDE OF MENUBAR! */
-	right_just = True;
-    cmd = '/';
     case '.':
     case '/':			/* absolute & relative path */
     case MENUITEM_BEG:		/* menuitem */
@@ -1793,15 +1753,14 @@ menubar_dispatch(char *str)
 	}
 	return;
 	break;
-    }  /* end big switch. */
+    }
 
 #if (MENUBAR_MAX > 1)
     if (CurrentBar == NULL)
-        return;
-
+	return;
     if (menu_readonly) {
 #ifdef DEBUG_MENUBAR_STACKING
-	printf("menus are read%s, PUNT!\n", menu_readonly ? "only" : "/write");
+	printf("menus are read%s\n", menu_readonly ? "only" : "/write");
 #endif
 	return;
     }
@@ -1858,9 +1817,6 @@ menubar_dispatch(char *str)
 	    if (path[0] != '\0') {
 		int             len;
 
-		if (path[0] == '>')
-			path++;  /* strip off right-justification symbol. */
-
 		path = menu_find_base(&BuildMenu, path);
 		len = strlen(path);
 
@@ -1872,10 +1828,7 @@ menubar_dispatch(char *str)
 		    path[len - 2] = '\0';
 		}
 		if (path[0] != '\0')
-		{
-		    BuildMenu = menu_add(BuildMenu, path, right_just);
-		    right_just = False;
-		}
+		    BuildMenu = menu_add(BuildMenu, path);
 	    }
 	    if (name != NULL && name[0] != '\0') {
 		if (!strcmp(name, SEPARATOR_NAME))
@@ -1948,7 +1901,6 @@ void
 draw_Arrows(int name, int state)
 {
 #ifdef MENUBAR
-#ifndef NO_MENUBAR_ARROWS
     GC              top, bot;
 
     int             i;
@@ -1984,7 +1936,6 @@ draw_Arrows(int name, int state)
     }
     XFlush(Xdisplay);
 #endif
-#endif
 }
 
 /* PROTO */
@@ -2006,8 +1957,7 @@ menubar_expose(void)
 
 	gcvalue.foreground = (Xdepth <= 2 ?
 			      PixColors[Color_fg] :
-/* JWT:CHGD. TO NEXT (CAN'T SEE WHAT WE'RE DOIN')!:			      PixColors[Color_Black]); */
-			      PixColors[Color_widgetFG]);
+			      PixColors[Color_Black]);
 	menubarGC = XCreateGC(Xdisplay, menuBar.win,
 			      GCForeground | GCFont,
 			      &gcvalue);
@@ -2035,99 +1985,80 @@ menubar_expose(void)
     menu_hide_all();
 
     x = 0;
-	char           *str, title[256];
-	int             len, ncol = TermWin.ncol;
-    int xl = 0;
-    int xr = TermWin.ncol;
-
-#ifndef NO_MENUBAR_ARROWS
-	if (x < (ncol - (NARROWS + 1))) {
-	    ncol -= (NARROWS + 1);
-	    Arrows_x = Width2Pixel(ncol);
-	}
-	xr = ncol;
-#endif
     if (CurrentBar != NULL) {
 	for (menu = CurrentBar->head; menu != NULL; menu = menu->next) {
 	    int             len = menu->len;
 
-	    if (menu->right_just) {
-            x = xr;
-            menu->x = x - (menu->len + HSPACE);
-            xr = menu->x;
-	    } else {
-            menu->x = xl;
-            xl = menu->x + (menu->len + HSPACE);
-	    }
+	    x = (menu->x + menu->len + HSPACE);
 
 #ifdef DEBUG_MENU_LAYOUT
 	    print_menu_descendants(menu);
 #endif
 
-	    if (x > TermWin.ncol)
+	    if (x >= TermWin.ncol)
 		len = (TermWin.ncol - (menu->x + HSPACE));
 
 	    drawbox_menubar(menu->x, len, +1);
 
 	    XDrawString(Xdisplay,
 			menuBar.win, menubarGC,
-			(Width2Pixel(menu->x) + Width2Pixel(HSPACE) / 2),
+			(Width2Pixel(menu->x) + Width2Pixel(HSPACE) / 2 ),
 			menuBar_height() - MENU_MARGIN,
 			menu->name, len);
 
-	    if (x > TermWin.ncol)
+	    if (x >= TermWin.ncol)
 		break;
 	}
     }
     drawbox_menubar(x, TermWin.ncol, (CurrentBar ? +1 : -1));
 
 /* add the menuBar title, if it exists and there's plenty of room */
-    if (xl < ncol) {  /* HAVE ROOM FOR AT LEAST THE ARROWS: */
-		draw_Arrows(0, +1);
+    Arrows_x = 0;
+    if (x < TermWin.ncol) {
+	char           *str, title[256];
+	int             len, ncol = TermWin.ncol;
 
-		str = (CurrentBar && CurrentBar->title ? CurrentBar->title : "%n-%v");
-		for (len = 0; str[0] && len < sizeof(title) - 1; str++) {
-		    const char     *s = NULL;
+	if (x < (ncol - (NARROWS + 1))) {
+	    ncol -= (NARROWS + 1);
+	    Arrows_x = Width2Pixel(ncol);
+	}
+	draw_Arrows(0, +1);
 
-		    switch (str[0]) {
-		    case '%':
-			str++;
-			switch (str[0]) {
-			case 'n':
-			    s = rs_name;
-			    break;	/* resource name */
-			case 'v':
-			    s = VERSION;
-			    break;	/* version number */
-			case '%':
-			    s = "%";
-			    break;	/* literal '%' */
-			}
-			if (s != NULL)
-			    while (*s && len < sizeof(title) - 1)
-				title[len++] = *s++;
-			break;
+	str = (CurrentBar && CurrentBar->title ? CurrentBar->title : "%n-%v");
+	for (len = 0; str[0] && len < sizeof(title) - 1; str++) {
+	    const char     *s = NULL;
 
-		    default:
-			title[len++] = str[0];
-			break;
-		    }
+	    switch (str[0]) {
+	    case '%':
+		str++;
+		switch (str[0]) {
+		case 'n':
+		    s = rs_name;
+		    break;	/* resource name */
+		case 'v':
+		    s = VERSION;
+		    break;	/* version number */
+		case '%':
+		    s = "%";
+		    break;	/* literal '%' */
 		}
-		title[len] = '\0';
+		if (s != NULL)
+		    while (*s && len < sizeof(title) - 1)
+			title[len++] = *s++;
+		break;
 
-		if (len <= 0 || (xr - xl) < len)
-			return;  /* SKIP TITLE, NO TITLE OR NO ROOM FOR IT! */
+	    default:
+		title[len++] = str[0];
+		break;
+	    }
+	}
+	title[len] = '\0';
 
-		x = (TermWin.ncol - len) / 2;  /* FIRST TRY CENTERING IN WINDOW: */
-		/* IF CENTERING IMPINGES ON BUTTONS, THEN CENTER BETWEEN LEFT & RIGHT BUTTONS: */
-		x = (x <= xl || x + len >= xr)
-			? Width2Pixel(xl) + (Width2Pixel((xr - xl) - len)) / 2
-			: Width2Pixel(x);
-
+	ncol -= (x + len + HSPACE);
+	if (len > 0 && ncol >= 0)
 	    XDrawString(Xdisplay,
 			menuBar.win, menubarGC,
-			/* JWT:x WAS Width2Pixel(xl) + Width2Pixel((ncol0 - xr) + HSPACE) / 2, */
-			x,
+			Width2Pixel(x) + Width2Pixel(ncol + HSPACE) / 2,
 			menuBar_height() - MENU_MARGIN,
 			title, len);
     }
@@ -2152,9 +2083,6 @@ menubar_mapping(int map)
 	change = 1;
     } else
 	menubar_expose();
-
-    if (change)
-        resize();
 #endif
 
     return change;
@@ -2326,7 +2254,8 @@ menubar_select(XButtonEvent * ev)
 
     case ButtonPress:
 	if (menu == NULL && Arrows_x && ev->x >= Arrows_x) {
-#ifndef NO_MENUBAR_ARROWS
+	    int             i;
+
 	    for (i = 0; i < NARROWS; i++) {
 		if (ev->x >= (Arrows_x + (Width2Pixel(4 * i + i)) / 4) &&
 		    ev->x < (Arrows_x + (Width2Pixel(4 * i + i + 4)) / 4)) {
@@ -2374,7 +2303,6 @@ menubar_select(XButtonEvent * ev)
 		    return;
 		}
 	    }
-#endif
 	}
     /*drop */
 

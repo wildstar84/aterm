@@ -41,13 +41,14 @@
 /Window/*
 #Add menuitems to that button's menu:
 #For example, add 1st menuitem "New" that launches another aterm:
-{New} aterm &\r
+{New} aterm -mb &\r
 #The menu command sends  Control+C escape sequence to terminal (Break):
 #Note, the {^C} in brackets just appears with "Cancel" on the menu to remind 
 #the user of the keyboard sequence but otherwise is just free-text.
 {Cancel}{^C} ^C
 #Sends "cls\n" command to the shell:
 {Clear}{} cls\r
+{Restore sanity}{} stty sane\r
 #Add a separator:
 {-}
 {Exit} exit\r
@@ -65,10 +66,50 @@
 /Options/*
 {Menu Bar}{^M} ^^M
 {Scroll Bar}{^S} ^^S
+{-}
+{132 columns} ^@\E[?40h^G^@\E[?3h^G
+{80 columns}  ^@\E[?40h^G^@\E[?3l^G
+{-}
+#HERE'S A SUBMENU:  NOTE:FOR SOME REASON, THE 1ST SUBMENU ITEM BEGINS WITH
+#ONE DOT, BUT ALL SUBSEQUENT ONES AT SAME LEVEL BEGIN WITH TWO - I DON'T
+#KNOW WHY, BUT IT ONLY WORKS THIS WAY!!:
+./Colors(FG)/*
+{red} ^@\E]39;red^G
+{green} ^@\E]39;green^G
+{amber} ^@\E]39;rgb:FE/78/00^G
+{yellow} ^@\E]39;yellow^G
+{blue} ^@\E]39;blue^G
+{magenta} ^@\E]39;magenta^G
+{cyan} ^@\E]39;cyan^G
+{white} ^@\E]39;white^G
+{black} ^@\E]39;black^G
+{-}
+{reset FG} ^@\E]39;^G
+#ANOTHER SUBMENU ITEM (NOTE: SAME LEVEL AS 1ST, DESPITE 2 DOTS)!:
+../Colors(BG)/*
+{Black} ^@\E]49;black^G
+{Red} ^@\E]49;red^G
+{Green} ^@\E]49;green^G
+{Amber} ^@\E]49;rgb:FE/78/00^G
+{Yellow} ^@\E]49;yellow^G
+{Blue} ^@\E]49;blue^G
+{Magenta} ^@\E]49;magenta^G
+{Cyan} ^@\E]49;cyan^G
+{White} ^@\E]49;white^G
+{Violet} ^@\E]49;rgb:16/00/28^G
+{-}
+{reset BG} ^@\E]49;^G
+#END OF SUBMENU ITEMS, SUBSEQUENT ONES IN MAIN "Options" MENU:
+../
+{Reverse video} ^@\E[?5t^G
+{Auto-wrapping} ^@\E[?7t^G
+{-}
 #This sends a font-change ANSI escape-sequence to the terminal:
 {Font Size}	^@\E]50;#+
-{Reset}{} stty sane\r
-#This displays the menubar (with 2 buttons:  [File] and [Edit]):
+#This menubutton is packed on the right side of the menubar (note the ">"):
+>/Help/*
+{About} man aterm\r
+#This displays the menubar (with 3 buttons:  [Window], [Edit], and [Options]):
 [show]
 #This ends the commands to create the menubar:
 [done:bar1]
