@@ -38,13 +38,15 @@ static GC paintGC = None;
 static GC grayGC = None;
 static GC stippleGC = None;
 static Pixel blackPixel, whitePixel, darkPixel;
+static Pixel darkPixel2, bgPixel, bottomshadowPixel, topshadowPixel;  /* JWT:ADDED */
 
+/* JWT:CHGD. '#' TO 'd' IN DIMPLE BITMAP TO SHADOW BETTER WHEN DARK BACKGROUNDS USED: */
 static char *SCROLLER_DIMPLE[] = {
-".%###.",
-"%#%%%%",
-"#%%...",
-"#%..  ",
-"#%.   ",
+".%ddd.",
+"%d%%%%",
+"d%%...",
+"d%..  ",
+"d%.   ",
 ".%.  ."
 };
 
@@ -174,12 +176,19 @@ static ScrollArrows NeXTScrollArrows =
 
 #define stp_width 8
 #define stp_height 8
-static unsigned char stp_bits[] = {
+static const char stp_bits[] = {
    0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa, 0x55, 0xaa};
 
+/* JWT:ADDED IS_TRANSP_WINDOW FOR WHEN THE ATERM WINDOW ITSELF IS TRANSPARENT (-tr)
+   B/C EITHER OR BOTH THE WINDOW AND/OR THE SCROLLBARS CAN BE INDEPENDENTLY TRANSPARENT
+   AND WE HANDLE THE SCROLLBAR TRANSPARANCY DIFFERENTLY IF THE WINDOW ISN'T (IN WHICH
+   CASE, THE WINDOW'S BACKGROUND COLOR BECOMES THE SCROLLBAR'S "TRANSPARANCY")!:
+*/
 #ifdef TRANSPARENT
+#define IS_TRANSP_WINDOW (Options&Opt_transparent)
 #define IS_TRANSP_SCROLL (Options&Opt_transparent_sb)
 #else
+#define IS_TRANSP_WINDOW 0
 #define IS_TRANSP_SCROLL 0
 #endif
 
@@ -235,17 +244,20 @@ CheckIconGC(IconGC* igc, Pixmap icon, Pixmap icon_mask)
     }
     if( igc->whiteGC == None )
     {
-        values.foreground = whitePixel ;
+        /* JWT:CHGD. TO NEXT FOR BETTER BEVELING: values.foreground = whitePixel ; */
+        values.foreground = topshadowPixel ;
 	igc->whiteGC = XCreateGC( Xdisplay, icon, valuemask, &values );
     }
     if( igc->darkGC == None )
     {
-        values.foreground = darkPixel ;
+        /* JWT:CHGD. TO NEXT FOR BETTER BEVELING: values.foreground = darkPixel ; */
+        values.foreground = bottomshadowPixel ;
 	igc->darkGC = XCreateGC( Xdisplay, icon, valuemask, &values );
     }
     if( igc->blackGC == None )
     {
-        values.foreground = blackPixel ;
+        /* JWT:CHGD. TO NEXT FOR ARROW ICON FG:  values.foreground = blackPixel ; */
+        values.foreground = darkPixel2 ;
 	igc->blackGC = XCreateGC( Xdisplay, icon, valuemask, &values );
     }
 }
@@ -353,7 +365,12 @@ init_stuff(void)
 
     blackPixel = BlackPixelOfScreen(DefaultScreenOfDisplay(Xdisplay));
     whitePixel = WhitePixelOfScreen(DefaultScreenOfDisplay(Xdisplay));
+    /* JWT:NEXT 2 ADDED FOR BETTER BEVELING: */
+    topshadowPixel = PixColors[Color_topShadow];
+    bottomshadowPixel = PixColors [Color_bottomShadow];
+    bgPixel = IS_TRANSP_SCROLL ? PixColors [Color_bg] : blackPixel;
 
+/* JWT:REPLACED BY FOLLOWING LINE TO ACTUALLY USE "SCROLL COLORS" FOR THE SCROLLBARS!: ;)
     xcol.red = 0xaeba;
     xcol.green = 0xaaaa;
     xcol.blue = 0xaeba;
@@ -366,11 +383,14 @@ init_stuff(void)
 	xcol.pixel = PixColors [Color_White];
 #endif
     }
+*/
+xcol.pixel = PixColors [Color_scroll];
 
     light = gcvalue.foreground = xcol.pixel;
     grayGC =  XCreateGC(Xdisplay, scrollBar.win, GCForeground|GCGraphicsExposures,
 			&gcvalue);
 
+/* JWT:REPLACED BY FOLLOWING LINE TO ACTUALLY USE "SCROLL COLORS" FOR THE SCROLLBARS!: ;)
     xcol.red = 0x51aa;
     xcol.green = 0x5555;
     xcol.blue = 0x5144;
@@ -384,8 +404,12 @@ init_stuff(void)
 #endif
 
     }
+*/
+xcol.pixel = PixColors [Color_trough];
 
     darkPixel = xcol.pixel;
+    /* JWT:ADDED FOR ARROW ICON FG, WHICH IS DIFFERENT FROM THE SCROLLBAR TROUGH! */
+    darkPixel2 = PixColors [Color_widgetFG];
 
     renderIcon(SCROLLER_DIMPLE, &dimple, &icongc);
 
@@ -413,16 +437,20 @@ init_stuff(void)
     paintGC = XCreateGC(Xdisplay, scrollBar.win, GCForeground|GCGraphicsExposures,
 			&gcvalue);
 
-    stipple = XCreateBitmapFromData(Xdisplay, scrollBar.win,
-				    stp_bits, stp_width, stp_height);
-    gcvalue.foreground = darkPixel;
-    gcvalue.background = light;
-    gcvalue.fill_style = FillStippled;
-    gcvalue.stipple = stipple;
+    if( IS_TRANSP_SCROLL )
+        stippleGC = paintGC;  /* JWT:DON'T USE STIPPLED BG FOR TRANSPARENT SCROLLBARS (UGLY)!: */
+    else {
+        stipple = XCreateBitmapFromData(Xdisplay, scrollBar.win,
+                        stp_bits, stp_width, stp_height);
+        gcvalue.foreground = darkPixel;
+        gcvalue.background = light;
+        gcvalue.fill_style = FillStippled;
+        gcvalue.stipple = stipple;
 
-    stippleGC = XCreateGC(Xdisplay, scrollBar.win, GCForeground|GCBackground
-			  |GCStipple|GCFillStyle|GCGraphicsExposures,
-			  &gcvalue);
+        stippleGC = XCreateGC(Xdisplay, scrollBar.win, GCForeground|GCBackground
+                  |GCStipple|GCFillStyle|GCGraphicsExposures,
+                  &gcvalue);
+    }
 
     scrollbar_show(1);
 }
@@ -432,11 +460,15 @@ init_stuff(void)
 static void
 drawBevel(Drawable d, int x, int y, int w, int h)
 {
-    XSetForeground( Xdisplay, paintGC, whitePixel );
+    /* XSetForeground( Xdisplay, paintGC, whitePixel ); */
+    /* JWT:USE ACTUAL BEVEL COLORS FOR SCROLLBAR-BUTTON BEVELING!: */
+    XSetForeground( Xdisplay, paintGC, topshadowPixel );
     XDrawLine(Xdisplay, d, paintGC, x, y, x+w-1, y);
     XDrawLine(Xdisplay, d, paintGC, x, y, x, y+h-1);
 
-    XSetForeground( Xdisplay, paintGC, blackPixel );
+    /* XSetForeground( Xdisplay, paintGC, blackPixel ); */
+    /* JWT:USE ACTUAL BEVEL COLORS FOR SCROLLBAR-BUTTON BEVELING!: */
+    XSetForeground( Xdisplay, paintGC, bottomshadowPixel );
     XDrawLine(Xdisplay, d, paintGC, x+w-1, y, x+w-1, y+h-1);
     XDrawLine(Xdisplay, d, paintGC, x, y+h-1, x+w-1, y+h-1);
 #ifndef NEXT_SCROLL_CLEAN
@@ -456,7 +488,15 @@ scrollbar_mapping(int map)
     int             change = 0;
 
     if (map && !scrollbar_visible()) {
-	scrollBar.state = 1;
+        scrollBar.state = 1;
+
+#ifdef TRANSPARENT
+    if (IS_TRANSP_SCROLL ) {
+		/* JWT:MAKE SCROLLBAR'S WINDOW TRANSPARENT!: */
+		XSetWindowBackground(Xdisplay, scrollBar.win, None);
+	}
+#endif
+
 	XMapWindow(Xdisplay, scrollBar.win);
 	change = 1;
     } else if (!map && scrollbar_visible()) {
@@ -464,6 +504,9 @@ scrollbar_mapping(int map)
 	XUnmapWindow(Xdisplay, scrollBar.win);
 	change = 1;
     }
+    if (change)   /* JWT:MUST RESIZE ATERM WINDOW TO ACCOUNT FOR SHOWING/HIDING SCROLLBAR, */
+        resize(); /* OTHERWISE WHAT'S THE POINT OF HIDING IT?! */
+
     return change;
 }
 
@@ -522,12 +565,17 @@ Pixmap scrollbar_fill_back( unsigned int height, int check_cache )
     }
 #endif
 
-    /* draw the background */
-    XFillRectangle(Xdisplay, buffer, grayGC, 0, 0, SB_WIDTH+SB_BORDER_WIDTH, height);
+    /* draw the backgrounds of everything in the scroolbar window: */
+#ifdef TRANSPARENT
+    if (IS_TRANSP_SCROLL)  /* JWT:MAKE SCROLLBAR BUTTON BACKGROUNDS TRANSPARENT: */
+        XSetForeground(Xdisplay, grayGC, bgPixel );
+#endif
 
-    XSetForeground(Xdisplay, paintGC, blackPixel );
+    XFillRectangle(Xdisplay, buffer, grayGC, 0, 0, SB_WIDTH+SB_BORDER_WIDTH, height);
+    XSetForeground(Xdisplay, paintGC, bgPixel );
     XDrawRectangle(Xdisplay, buffer, paintGC, 0, 0, SB_WIDTH, height);
 
+    /* this draws the trough background: */
     if (TermWin.nscrolled > 0)
     {
         XFillRectangle( Xdisplay, buffer, stippleGC,
@@ -549,7 +597,7 @@ int
 scrollbar_show_cached(int update, int check_cache)
 {
     /* old (drawn) values */
-    static int last_top, last_bot, last_len;
+    static int last_top, last_bot;
     static int scrollbar_len;		/* length of slider */
     Pixmap buffer;
     int height = scrollBar.end + SB_BUTTONS_HEIGHT+sb_shadow ;
@@ -578,7 +626,6 @@ scrollbar_show_cached(int update, int check_cache)
 
     last_top = scrollBar.top;
     last_bot = scrollBar.bot;
-    last_len = scrollbar_len;
 
     buffer = scrollbar_fill_back( height, check_cache );
     if (TermWin.nscrolled > 0)
@@ -645,7 +692,27 @@ scrollbar_show_cached(int update, int check_cache)
 int
 scrollbar_show(int update)
 {
-    return scrollbar_show_cached(update, 0);
+    return scrollbar_show_cached(update,
+            (IS_TRANSP_WINDOW && IS_TRANSP_SCROLL) ? 1 : 0);
+}
+
+/* PROTO */
+void
+scrollbar_update_bgcolor()
+{
+	/* NEW FUNCTION TO UPDATE TRANSPARANT SCROLLBARS WHEN ATERM
+	   WINDOW IS NOT TRANSPARENT AND CHANGES BACKGROUND COLOR:
+	*/
+#ifdef TRANSPARENT
+	if (IS_TRANSP_WINDOW)
+		return;
+
+	if (IS_TRANSP_SCROLL)
+	{
+		bgPixel = PixColors [Color_bg];
+		scrollbar_show_cached(0, 1);
+	}
+#endif
 }
 
 
@@ -654,7 +721,8 @@ void
 refresh_transparent_scrollbar()
 {
 #ifdef TRANSPARENT
-    if( IS_TRANSP_SCROLL )	scrollbar_show_cached(0, 1);
+    if( IS_TRANSP_SCROLL )	scrollbar_show_cached(0,
+            (IS_TRANSP_WINDOW && IS_TRANSP_SCROLL) ? 1 : 0);
 #endif
 }
 

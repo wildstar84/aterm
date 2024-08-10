@@ -1362,6 +1362,10 @@ xterm_seq(int op, const char *str)
 	break;
     case XTerm_restoreBG:
 	set_window_color(Color_bg, (str[0] ? str : rs_color[Color_bg]));
+#ifdef TRANSPARENT
+	/* JWT:NEEDED FOR TRANSPARENT SCROLLBARS WHEN WINDOW NOT TRANSPARENT! */
+	scrollbar_update_bgcolor();
+#endif
 	break;
     case XTerm_logfile:
 	break;
