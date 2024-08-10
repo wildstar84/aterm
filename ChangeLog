@@ -1,3 +1,73 @@
+2024-08-10  JWT:
+
+	* Update from their original vsn# 1.00.02 to 2.00.00, as this fork is a
+	  major release (1st new aterm release in over 20 years)!
+
+	* Add 3 new non-standard delete functions:
+	  (Delete to EOL, Delete to BOL, & Delete line: escape codes: \E[?3K,
+	  \E[?4K and \E[?5K) for convenience.  
+
+	  Also added corresponding keyboard and menu-support:  
+	      Control+k deletes to EOL, (menu action seq:  "^^k" or "^@\E[?3K^G")
+	      Shift+Control+K to BOL,   (menu action seq:  "^^K" or "^@\E[?4K^G")
+	      Shift+Delete the entire line typed. (menu action seq: "^@\E[?5K^G")
+	  See the updated mymenu.menu file changes for example menu entries.
+
+	* Menubar:  Added support for right-side menubutton packing:  
+	  Menubuttons are added packed to the left side of menubar.  By adding
+	  a ">" preceeding a top-level menu name in menu config file, it will now 
+	  be packed on the right side.  See the mymenu.menu config file for an 
+	  example.  Also added an option "NO_MENUBAR_ARROWS" (see src/features.h) 
+	  to NOT show the four little triangle arrow-buttons on the right end of 
+	  menubars (which by default are always visible and simply emulate the 
+	  4 corresponding arrow keys on the keyboard).  If built with this 
+	  option defined, some memory will also be saved, as the code that 
+	  produces these arrow-buttons will not be compiled in!
+
+	* Added a "NO_MENUBAR_ARROWS" compile-time option to not include the 4 
+	  arrow buttons at right end of menubars (see feature.h).
+
+	* Scrollbar:  Made colors & transparency work properly:  
+	  1) aterm provides 2 color resources:  scrollColor & troughColor, but
+	  neither were being used (Scrollbars were always an ugly stippled light-
+	  gray Motif look).  Now actually USE these colors if specified.
+	  2) Make transparency actually work (transparent to screen if aterm 
+	  window is transparent, and the aterm window's background if not). 
+	  This also now works if user later changes aterm window's 
+	  background color when the scrollbar is set to transparent!
+
+	* Added command-line option "[-+]mb, and the .Xdefaults resource options: 
+	  1) "menuBar": (specify "true" (ie. -mb) or "false" (+mb): to show or hide 
+	  respectively) any configured menubar on startup.  You can use the new 
+	  [-+]mb flag to override the "menuBar" resource setting to either force 
+	  start with the menubar shown, or hidden respectively.  Default is hidden. 
+	  2) "widgetFG": (color, recommended values:  "Black" for light desktop 
+	  backgrounds, and the default; or "White" for dark ones).
+	  Use widgetFG resource, for example, if you are using a dark desktop 
+	  background theme in order to be able to see the text of menubar buttons, 
+	  etc.
+
+	* Added new menu-loading script (copied doc/menu/menu to aterm_menu.sh) 
+	  to where it will be be installed by "make install" into the same */bin 
+	  directory as aterm itself (within the executable path) and modify the
+	  build system to make that happen.  The build changes are a bit of a 
+	  hack, but I'm very new to build configurating (patches welcome)!
+
+	* Added keyboard & menu sequences to toggle scroll & menu bars:
+	  Shift+Control+M to toggle visibility of the menubar, and Shift+Control+S 
+	  will toggle the scrollbar's visibility.  The corresponding menu action 
+	  sequences are: "^^M" and "^^S" respectively.
+
+	* Added a doc/README.menus file, a config.h.README file, an updated 
+	  man-page and FAQ, and generally improved the documentation, particularly, 
+	  the previously sparsly-documented menubar feature.
+
+	* Update the default scrollbar button delay & repeat speeds to not be so 
+	  fast (on modern processors)  See src/features.h
+
+	* Minor code cleanups all to reduce compiler warnings and annotate all of 
+	  our (non-trivial) code changes.
+
 2024-08-02  JWT:
 
 	* Differentiate between the PRIMARY and CLIPBOARD buffers & support & set up 

@@ -16,44 +16,31 @@ Using GNU autoconfig
 	Or if you're using a non Bourne-compatible shell, you can do:
 		sh -c 'CFLAGS="-O2 -g" ./configure
 
-  2.	Edit "config.h.README" and adjust anything else you may need or wish
-	to adjust, then compare with the ./configure-generated "config.h"
-	file.  If you changed anything or prefer it's settings then replace
-	the generated config.h with this file, otherwise, skip this step.
-
-  3.	set any other main preferences:
-		Edit "src/feature.h"
-		Edit "config.h"if you didn't use ./configure options
-		If you're cross-compiling, edit the following in "config.h"
+  2.	set any other main preferences:
+    	    Edit "src/feature.h"
+	    Edit "config.h"   if you didn't use ./configure options
+	    If you're cross-compiling, edit the following in "config.h"
 		NO_XLOCALE
-		SIZEOF_* # sizeof some types
-		R*INT*T  # types which are the same size..
-		         # as 16bit/32bit/pointer
+		SIZEOF_*	# sizeof some types
+		R*INT*T		# types which are the same size
+				# as 16bit/32bit/pointer
 
-  4.	Build it (repeat step 2 as desired):
-		make
+  3.	Build it (repeat step 2 as desired):
+	    make
 
-	Note:  You will likely see a bunch of compiler warnings.  I've eliminated 
-	as many as I could.  The rest seem to involve pointer differences between 
-	32bit & 64 bit systems, and unsigned char vs char variable defininitions.  
-	(likely due to some parts of the terminal code doing math assuming 7-bit 
-	ASCII and others dealing with 8-bit ASCII).  Everything seems to have 
-	worked well without issues, so I'm not touching  (Patches from more 
-	expert C programmers welcome)!
-
-  5.	Install aterm :
-		make install
+  4. 	Install aterm :
+	    make install
 
 	you may also want to install doc/etc/rxvt.terminfo and 
 	doc/etc/rxvt.termcap
 
   6 a.	If compiled with UTMP_SUPPORT, you may need to install aterm setuid
 	root or setuid/setgid to match the file permissions on /etc/utmp
-  6 b.	You may need to install setuid root anyway for some systems so that
+  6 b.  You may need to install setuid root anyway for some systems so that
 	they can give you ownership of the tty devices.
 
   7.	On systems which dislike doc/aterm.1
-		(cd doc; rm aterm.1; make aterm.1)
+	    (cd doc; rm aterm.1; make aterm.1)
   	
 		 ===================================
 
