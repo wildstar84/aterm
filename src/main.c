@@ -32,7 +32,7 @@
  *----------------------------------------------------------------------*/
 
 #ifndef lint
-static const char rcsid[] = "$Id: main.c,v 1.33 2007/08/01 14:08:29 vae Exp $";
+/* JWT:DEPRECIATED? - JUST CAUSES WARNINGS!: static const char rcsid[] = "$Id: main.c,v 1.33 2007/08/01 14:08:29 vae Exp $"; */
 #endif
 
 #define INTERN			/* assign all global vars to me */
@@ -124,8 +124,10 @@ static const char *def_colorName[] =
   , NULL, NULL
 #endif				/* NO_BOLDUNDERLINE */
 #ifdef KEEP_SCROLLCOLOR
-  , "#B2B2B2",			/* scrollColor: `match' Netscape color */
-    "#969696"			/* troughColor */
+  , "#B2B2B2"			/* scrollColor: `match' Netscape color */
+  , "#969696"			/* troughColor */
+  , "Black"  			/* JWT ADDED: widgetFG (Menu & Scrollbar buttons now allowed different BG from terminal text! */
+  , "Black"  			/* JWT ADDED: black - used for comparisen in scrollbar.c */
 #endif
 };
 
@@ -648,9 +650,11 @@ Create_Windows(int argc, char *argv[])
 
     change_font(1, NULL);
 
-    { /* ONLYIF MENUBAR */
+#ifdef MENUBAR
+    if (Options & Opt_menuBar) { /* ONLYIF MENUBAR ON AT STARTUP (-mb): */
 	szHint.base_height += (delay_menu_drawing ? menuBar_TotalHeight() : 0);
     }
+#endif
 
     if (flags & XValue) {
 	if (flags & XNegative) {
@@ -827,9 +831,11 @@ Create_Windows(int argc, char *argv[])
 		  Button1MotionMask | Button2MotionMask | Button3MotionMask)
 	);
 
+#ifdef MENUBAR
     { /* ONLYIF MENUBAR */
 	create_menuBar(cursor);
     }
+#endif
 #if defined(BACKGROUND_IMAGE)
     if (rs_backgroundPixmap != NULL
 #ifdef TRANSPARENT
@@ -929,10 +935,12 @@ resize_subwindows(int width, int height)
 	}
     }
     { /* ONLYIF MENUBAR */
+#ifdef MENUBAR
 	if (menubar_visible()) {
 	    y = menuBar_TotalHeight();	/* for placement of vt window */
 	    Resize_menuBar(x, 0, width, y);
 	}
+#endif
     }
     XMoveResizeWindow(Xdisplay, TermWin.vt, x, y, width, height + 1);
 	
@@ -953,9 +961,11 @@ resize(void)
     szHint.base_height = (2 * TermWin_internalBorder);
 
     szHint.base_width += (scrollbar_visible() ? (SB_WIDTH + 2 * sb_shadow) : 0);
+#ifdef MENUBAR
     { /* ONLYIF MENUBAR */
 	szHint.base_height += (menubar_visible() ? menuBar_TotalHeight() : 0);
     }
+#endif
 
     szHint.min_width = szHint.base_width + szHint.width_inc;
     szHint.min_height = szHint.base_height + szHint.height_inc;
@@ -1347,11 +1357,11 @@ xterm_seq(int op, const char *str)
 #endif
 	break;
 
-    case XTerm_restoreFG:
-	set_window_color(Color_fg, str);
+    case XTerm_restoreFG: /* JWT:IF NO COLOR SPECIFIED, RESTORE STARTUP COLOR!: */
+	set_window_color(Color_fg, (str[0] ? str : rs_color[Color_fg]));
 	break;
     case XTerm_restoreBG:
-	set_window_color(Color_bg, str);
+	set_window_color(Color_bg, (str[0] ? str : rs_color[Color_bg]));
 	break;
     case XTerm_logfile:
 	break;
@@ -1525,7 +1535,10 @@ change_font(int init, const char *fontname)
 /* alter existing GC */
     if (!init) {
 	XSetFont(Xdisplay, TermWin.gc, TermWin.font->fid);
-	menubar_expose();
+#ifdef MENUBAR
+	if (Options & Opt_menuBar)
+	    menubar_expose();
+#endif
     }
 /* set the sizes */
     {
@@ -1591,9 +1604,11 @@ change_font(int init, const char *fontname)
 
     szHint.width = szHint.base_width + TermWin.width;
     szHint.height = szHint.base_height + TermWin.height;
-    { /* ONLYIF MENUBAR */
-	szHint.height += (delay_menu_drawing ? menuBar_TotalHeight() : 0);
+#ifdef MENUBAR
+    if (Options & Opt_menuBar) { /* ONLYIF MENUBAR */
+        szHint.height += (delay_menu_drawing ? menuBar_TotalHeight() : 0);
     }
+#endif
 
     szHint.flags = PMinSize | PResizeInc | PBaseSize | PWinGravity;
 
@@ -2339,11 +2354,13 @@ main(int argc, char *argv[])
 #endif				/* NO_BOLDUNDERLINE */
 
 /* add startup-menu: */
+#ifdef MENUBAR
     { /* ONLYIF MENUBAR */
 	delay_menu_drawing = 1;
 	menubar_read(rs_menu);
 	delay_menu_drawing--;
     }
+#endif
 
     Create_Windows(saved_argc, saved_argv);
     scr_reset();		/* initialize screen */
@@ -2352,12 +2369,14 @@ main(int argc, char *argv[])
 /* add scrollBar, do it directly to avoid resize() */
     scrollbar_mapping(Options & Opt_scrollBar);
 /* we can now add menuBar */
+#ifdef MENUBAR
     { /* ONLYIF MENUBAR */
 	if (delay_menu_drawing) {
 	    delay_menu_drawing = 0;
-	    menubar_mapping(1);
+	    menubar_mapping((Options & Opt_menuBar) ? 1 : 0);
 	}
     }
+#endif
 /* do it now to avoid unneccessary redrawing */
     XMapWindow(Xdisplay, TermWin.vt);
     XMapWindow(Xdisplay, TermWin.parent);

@@ -179,7 +179,8 @@
  * Default separating chars for multiple-click selection
  * Space and tab are separate separating characters and are not settable
  */
-#define CUTCHARS	"\"&'()*,;<=>?@[\\]^`{|}~"
+/* JWT: #define CUTCHARS	"\"&'()*,;<=>?@[\\]^`{|}~" */
+#define CUTCHARS	"\"&'()*,;:<=>?[]^`{|}!"
 
 /*
  * Add run-time support for changing the cutchars for double click selection
@@ -201,11 +202,6 @@
  */
 /* #define SCROLLBAR_INITIAL_DELAY 40 */
 /* #define SCROLLBAR_CONTINUOUS_DELAY 2 */
-/* JWT:PROCESSORS ARE *A LOT* FASTER THESE DAYS, TIME TO UP THESE DEFAULTS!: ;)
-   (I COULD BARELY SEE THE LINES WHIZ BY)
-*/
-#define SCROLLBAR_INITIAL_DELAY 32000
-#define SCROLLBAR_CONTINUOUS_DELAY 12000
 
 /*--------------------------------BELL----------------------------------*/
 /*
@@ -248,8 +244,6 @@
 /* #define FUNKY_SCROLL_BEHAVIOUR */
 
 /*------------------------------MENU BAR--------------------------------*/
-/* COMMENT OUT NEXT LINE ONLY IF YOU DO NOT PLAN TO ALLOW USE OF ANY MENUBARS:  */
-#define MENUBAR
 /*
  * Choose how many of (experimental) menuBars you want to be able to stack at
  * one time.
@@ -257,16 +251,7 @@
  *  A value of 0 disables menuBar all together.
  *  Note that the amount of memory overhead is the same for any value >= 2.
  */
-/* JWT:SETTING MENUBAR_MAX TO 1 PRETTY MUCH LIKE 0, AS LOADING A MENUBAR
-   FROM A FILE SEEMS TO NOT WORK, SO I ADVISE SETTING TO 2+ EVEN IF YOU
-   ONLY PLAN TO USE 1 MENUBAR!:
-*/
 #define MENUBAR_MAX 8
-
-/* JWT:UNCOMMENT IF YOU DON'T WANT THE 4 SILLY ARROWS ON THE RIGHT SIDE
-   OF MENUBARS:
-*/
-#define NO_MENUBAR_ARROWS
 
 /*
  * Change the default shadow style

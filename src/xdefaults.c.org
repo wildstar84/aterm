@@ -52,7 +52,6 @@ static const char *rs_scrollBar_right = NULL;
 static const char *rs_scrollBar_floating = NULL;
 static const char *rs_scrollTtyOutput = NULL;
 static const char *rs_scrollKeypress = NULL;
-static const char *rs_menuBar = NULL;
 
 #ifdef TRANSPARENT
 static const char *rs_transparent = NULL;
@@ -171,7 +170,6 @@ static const struct {
 #ifdef KEEP_SCROLLCOLOR
     RSTRG(rs_color[Color_scroll], "scrollColor", "color"),
     RSTRG(rs_color[Color_trough], "troughColor", "color"),
-    RSTRG(rs_color[Color_widgetFG], "widgetFG", "color"),
 #endif				/* KEEP_SCROLLCOLOR */
 #if defined (BACKGROUND_IMAGE) || (MENUBAR_MAX)
     RSTRG(rs_path, "path", "search path"),
@@ -310,10 +308,6 @@ static const struct {
     BOOL(rs_scrollBar, "scrollBar", "sb", Opt_scrollBar, "scrollbar"),
     BOOL(rs_scrollBar_right, "scrollBar_right", "sr", Opt_scrollBar_right,
          "scrollbar right"),
-#ifdef MENUBAR
-    BOOL(rs_menuBar, "menuBar", "mb", Opt_menuBar,
-         "show menubar"),
-#endif
     BOOL(rs_scrollBar_floating, "scrollBar_floating", "st",
          Opt_scrollBar_floating, "scrollbar without a trough"),
     BOOL(rs_scrollTtyOutput, "scrollTtyOutput", NULL,
@@ -403,9 +397,6 @@ list_options()
 #endif
 #ifdef MENUBAR
     fprintf(stderr, "menubar,");
-#ifndef NO_MENUBAR_ARROWS
-    fprintf(stderr, "menubar arrows,");
-#endif
 #endif
 #ifdef KANJI
     fprintf(stderr, "Kanji,");

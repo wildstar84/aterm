@@ -234,8 +234,6 @@ typedef RUINTPT		R_u_int_p_t;
 #else
 # undef KEEP_SCROLLCOLOR
 #endif
-/* JWT:ALWAYS KEEP SCROLLCOLOR NOW (NEEDED FOR OTHER WIDGETS!: */
-#define KEEP_SCROLLCOLOR 1
 
 #if defined(BACKGROUND_IMAGE) || defined(TRANSPARENT) || defined(_MYSTYLE_)
 
@@ -425,7 +423,6 @@ typedef struct menu_t {
     short           x;		/* x location [pixels] (chars if parent == NULL) */
     short           y;		/* y location [pixels] */
     short           w, h;	/* window width, height [pixels] */
-    Bool            right_just;
 } menu_t;
 
 typedef struct bar_t {
@@ -436,10 +433,8 @@ typedef struct bar_t {
     char            name[MAXNAME];	/* name to use to refer to menubar */
     struct bar_t   *next, *prev;	/* circular linked-list */
 #endif				/* (MENUBAR_MAX > 1) */
-#ifndef NO_MENUBAR_ARROWS
 #define NARROWS	4
     action_t        arrows[NARROWS];
-#endif
 } bar_t;
 
 typedef struct grcmd_t {
@@ -790,7 +785,6 @@ enum {
 #define Opt_transparent		(1LU<<13)
 #define Opt_transparent_sb	(1LU<<14)
 #define Opt_borderLess		(1LU<<16)
-#define Opt_menuBar		(1LU<<17)
 
 /* place holder used for parsing command-line options */
 #define Opt_Reverse		(1LU<<30)
@@ -866,8 +860,6 @@ enum colour_list {
 #ifdef KEEP_SCROLLCOLOR
     Color_scroll,
     Color_trough,
-    Color_widgetFG,
-    Color_black,
 #endif
     NRS_COLORS,				/* */
 #ifdef KEEP_SCROLLCOLOR
