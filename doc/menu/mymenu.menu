@@ -63,6 +63,10 @@
 {Paste Primary}{@v} ^@v
 #This sends a Control_v as if user typed this sequence:
 {Paste Clipboard}{^v} ^^V
+{-}
+{Del to EOL}{^k} ^@\E[?3K^G
+{Del to BOL}{^K} ^@\E[?4K^G
+{Del line}{+Del} ^@\E[?5K^G
 /Options/*
 {Menu Bar}{^M} ^^M
 {Scroll Bar}{^S} ^^S

@@ -1584,6 +1584,10 @@ lookup_key(XEvent * ev)
 		return;
 		break;
 
+	    case XK_Delete:  /* JWT:MAKE Shift+Delete DELETE ENTIRE LINE'S TEXT: */
+		scr_erase_line(5);
+		return;
+
 	    /* rxvt extras */
 	    case XK_KP_Add:	/* Shift+KP_Add = bigger font */
 		change_font(0, FONT_UP);
@@ -1598,34 +1602,41 @@ lookup_key(XEvent * ev)
 	} else if (PrivateModes & PrivMode_ShiftKeys) {  /* JWT:HANDLE OUR Shift-key SEQUENCES: */
 	    switch (keysym) {
 	    /* normal XTerm key bindings */
-	    case XK_Insert:
-		    if (ctrl) {  /* JWT:MAKE Shift+Ctrl+Insert PASTE CLIPBOARD (like lxterminal/"dtterm"): */
+		case XK_C: /* JWT:MAKE Shift+Ctrl+C COPY SELECTION TO CLIPBOARD (WE CAN'T USE Ctrl+c! ;) */
+			if (ctrl) {
+				selection_to_clipboard();
+				return;
+			}
+	    case XK_Insert:  /* JWT:MAKE Shift+Ctrl+Insert PASTE CLIPBOARD (like lxterminal/"dtterm"): */
+		    if (ctrl) {
 				selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, aterm_XA_CLIPBOARD);
 				return;
-				break;
+			}
+	    case XK_K:
+		    if (ctrl) {  /* JWT:MAKE Shift+Ctrl+K ERACE TO BEGINNING OF LINE: */
+				scr_erase_line(4);
+				return;
 			}
 #ifdef MENUBAR
 		case XK_M: /* JWT:MAKE Shift-Ctrl-M TOGGLE THE VISIBILITY OF THE MENUBAR(S): */
 		{
+		    if (ctrl) {
 				int toggled = menubar_mapping(0);
 				if (toggled == 0)
 					menubar_mapping(1);
 				return;
+			}
 		}
 #endif
 		case XK_S: /* JWT:MAKE Shift-Ctrl-S TOGGLE THE VISIBILITY OF THE SCROLLBAR: */
 		{
+		    if (ctrl) {
 				int toggled = scrollbar_mapping(0);
 				if (toggled == 0)
 					scrollbar_mapping(1);
 				return;
-		}
-		case XK_C: /* JWT:MAKE Shift+Ctrl+c COPY SELECTION TO CLIPBOARD (WE CAN'T USE Ctrl+c! ;) */
-			if (ctrl) {
-				selection_to_clipboard();
-				return;
-				break;
 			}
+		}
 		}
 	}
     }
@@ -1653,11 +1664,12 @@ lookup_key(XEvent * ev)
 		case XK_v:  /* JWT:MAKE Ctrl+v PASTE CLIPBOARD (like everyone else): */
 			selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, aterm_XA_CLIPBOARD);
 			return;
-			break;
+		case XK_k:  /* JWT:MAKE Ctrl+k ERACE TO EOL: */
+			scr_erase_line(3);
+			return;
 		case XK_Insert:	/* JWT:MAKE Ctrl+Insert COPY SELECTION TO CLIPBOARD: */
 			selection_to_clipboard();
 			return;
-			break;
 		}
 	}
 	else if (meta) {  /* JWT:HANDLE OUR Alt-key SEQUENCES: */
@@ -1665,7 +1677,6 @@ lookup_key(XEvent * ev)
 		case XK_v:  /* JWT:MAKE Alt+v PASTE PRIMARY: */
 			selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, XA_PRIMARY);
 			return;
-			break;
 		}
 	}
 
@@ -2076,7 +2087,7 @@ cmd_write(const unsigned char *str, unsigned int count)
     }
 
     n = (count - (cmdbuf_ptr - cmdbuf_base));
-/* need to insert more chars that space available in the front */
+/* need to insert more chars than space available in the front */
     if (n > 0) {
     /* try and get more space from the end */
 	unsigned char  *src, *dst;
@@ -3340,6 +3351,8 @@ process_csi_seq(void)
 	scr_erase_screen(arg[0]);
 	break;
     case 'K':
+	if (arg[0] > 2 && priv == 0)
+		break;  /* JWT:(arg[0] > 2 ARE NON-STANDARD OPERATIONS)! */
 	scr_erase_line(arg[0]);
 	break;
     case '@':
@@ -3394,9 +3407,12 @@ process_csi_seq(void)
     /* drop */
     case 's':
     case 't':
-		if(arg[0] == 21)
+		if(arg[0] == 21) {
 			tt_printf((unsigned char *) "\033]l%s\033\\", rs_title);
-        break;
+            break;
+        } else if (arg[0] == 3 || arg[0] == 9 || arg[0] == 67)
+            break;  /* JWT:THINGS THAT DON'T LOOK TOGGLABLE W/ONE SEQUENCE? */
+        /* (WE NOW ALLOW OTHERS TO BE TOGGLED, IE. "Reverse Video", "80/132 lines", ETC.) */
     case 'h':
     case 'l':
 	process_terminal_mode(ch, priv, nargs, arg);
@@ -3501,6 +3517,7 @@ process_terminal_mode(int mode, int priv, unsigned int nargs, int arg[])
     case 0:
 	if (mode && mode != 1)
 	    return;		/* only do high/low */
+
 	for (i = 0; i < nargs; i++)
 	    switch (arg[i]) {
 	    case 4:

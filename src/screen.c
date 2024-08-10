@@ -35,7 +35,7 @@
 /*#define DEBUG_SCREEN */
 
 #ifndef lint
-static const char rcsid[] = "$Id: screen.c,v 1.14 2006/03/29 22:32:07 sasha Exp $";
+/* JWT:DEPRECIATED? - JUST CAUSES WARNINGS!: static const char rcsid[] = "$Id: screen.c,v 1.14 2006/03/29 22:32:07 sasha Exp $"; */
 #endif
 
 #define INTERN_SCREEN
@@ -1189,7 +1189,12 @@ scr_index(int direction)
 void
 scr_erase_line(int mode)
 {
+    const char * delseq = rs_delete_key;
+    const char * bsseq = "\177";
     int             row, col, num;
+    int i, j;
+    int kbidx;
+	char * kbbuf;
 
     D_SCREEN((stderr, "scr_erase_line(%d) at screen row: %d", mode, screen.cur.row));
     ZERO_SCROLLBACK;
@@ -1203,7 +1208,7 @@ scr_erase_line(int mode)
 
     row = TermWin.saveLines + screen.cur.row;
     switch (mode) {
-    case 0:			/* erase to end of line */
+    case 0:   /* erase to end of line */
 	col = screen.cur.col;
 	num = TermWin.bcol - col;
 	MIN_IT(screen.tlen[row], col);
@@ -1211,14 +1216,14 @@ scr_erase_line(int mode)
 	    || ROWCOL_IN_ROW_ON_OR_AFTER(selection.end, screen.cur))
 	    CLEAR_SELECTION;
 	break;
-    case 1:			/* erase to beginning of line */
+    case 1:   /* erase to beginning of line */
 	col = 0;
 	num = screen.cur.col + 1;
 	if (ROWCOL_IN_ROW_ON_OR_BEFORE(selection.beg, screen.cur)
 	    || ROWCOL_IN_ROW_ON_OR_BEFORE(selection.end, screen.cur))
 	    CLEAR_SELECTION;
 	break;
-    case 2:			/* erase whole line */
+    case 2:   /* erase whole line */
 	col = 0;
 	num = TermWin.bcol;
 	screen.tlen[row] = 0;
@@ -1226,6 +1231,44 @@ scr_erase_line(int mode)
 	    || selection.end.row >= screen.cur.row)
 	    CLEAR_SELECTION;
 	break;
+	/* --- JWT:ADDED SPECIAL PRIVATE DELETE MODES: ---
+           3=DELETE-TO-EOL, 4=DELETE-TO-BOL, and 5=DELETE LINE!:
+           IN OUR CASES, "LINE" IS JUST WHAT'S BEEN TYPED IN, NOT THE ENTIRE LINE,
+           AND NOT JUST ERASE IT ON THE SCREEN UNLIKE THE STANDARD Esc[0|1|2]K SEQUENCES DO)
+	*/
+    case 5:   /* delete whole line: */
+    case 3:   /* delete to end of line: */
+	col = screen.cur.col;
+	num = screen.tlen[row] - col;
+	if (num > 0) {
+		kbbuf = MALLOC((strlen(delseq) * num * sizeof(char)) + 1);
+		kbidx = 0;
+		for (i = 0; i < num; i++) {
+			for (j = 0; j < strlen(delseq); j++)
+				kbbuf[kbidx++] = delseq[j];
+		}
+		kbbuf[kbidx] = '\0';
+		tt_write(kbbuf, kbidx);
+		free(kbbuf);
+	}
+	if (mode != 5)
+		return;
+    case 4:   /* delete to beginning of line: */
+	col = screen.cur.col;
+	kbbuf = MALLOC((strlen(bsseq) * col * sizeof(char)) + 1);
+	kbidx = 0;
+	/* JWT:A BIT OF OVERKILL HERE B/C I CAN'T FIND ANY VARIABLE THAT GIVES THE 1ST
+	   *TYPED-IN* CHARACTER'S COLUMN# SO JUST ASSUME IT'S ZERO & SEND ENOUGH
+	   BACKSPACES AS IF THERE WAS NO PROMPT STRING (THE EXTRAS WILL BE IGNORED)!:
+	*/
+	for (i = 0; i < col; i++) {
+		for (j = 0; j < strlen(bsseq); j++)
+			kbbuf[kbidx++] = bsseq[j];
+	}
+	kbbuf[kbidx] = '\0';
+	tt_write(kbbuf, kbidx);
+	free(kbbuf);
+	return;
     default:
 	return;
     }
@@ -2008,7 +2051,7 @@ scr_refresh(int type)
                     boldlast,	/* last character in some row was bold       */
                     len, wlen,	/* text length screen/buffer                 */
                     fprop,	/* proportional font used                    */
-                    is_cursor,	/* cursor this position                      */
+                    /* JWT:NOT USED: is_cursor, */	/* cursor this position                      */
                     rvid,	/* reverse video this position               */
                     rend,	/* rendition                                 */
                     fore, back,	/* desired foreground/background             */
@@ -2067,7 +2110,7 @@ scr_refresh(int type)
     }
     row_offset = TermWin.saveLines - TermWin.view_start;
     fprop = TermWin.fprop;
-    is_cursor = 0;
+    /* JWT:NOT USED: is_cursor = 0; */
     gcvalue.foreground = PixColors[Color_fg];
     gcvalue.background = PixColors[Color_bg];
     dtp = stp = NULL;
@@ -3108,7 +3151,9 @@ selection_make(Time tm, unsigned int key_state)
 }
 
 /* JWT:(NEW FUNCTION) COPY SELECTION TO CLIPBOARD (BY TAKING OWNERSHIP OF IT): */
-void selection_to_clipboard()
+/* PROTO */
+void
+selection_to_clipboard()
 {
 	XSetSelectionOwner(Xdisplay, aterm_XA_CLIPBOARD, TermWin.vt, CurrentTime);
 	/* JWT:MUST COPY TO SEPARATE BUFFER, SINCE JUST OWNING IT, JOINS IT AT THE HIP W/PRIMARY!: */
@@ -3708,4 +3753,3 @@ setPosition(XPoint *pos)
   return ;
 }
 #endif
-
