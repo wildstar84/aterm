@@ -202,10 +202,10 @@
 /* #define SCROLLBAR_INITIAL_DELAY 40 */
 /* #define SCROLLBAR_CONTINUOUS_DELAY 2 */
 /* JWT:PROCESSORS ARE *A LOT* FASTER THESE DAYS, TIME TO UP THESE DEFAULTS!: ;)
-   (I COULD BARELY SEE THE LINES WHIZ BY)
+   (I COULD BARELY SEE THE LINES WHIZ BY ON MY 10 YEAR OLD ONE)
 */
-#define SCROLLBAR_INITIAL_DELAY 32000
-#define SCROLLBAR_CONTINUOUS_DELAY 12000
+#define SCROLLBAR_INITIAL_DELAY 36000
+#define SCROLLBAR_CONTINUOUS_DELAY 15000
 
 /*--------------------------------BELL----------------------------------*/
 /*
@@ -248,7 +248,9 @@
 /* #define FUNKY_SCROLL_BEHAVIOUR */
 
 /*------------------------------MENU BAR--------------------------------*/
-/* COMMENT OUT NEXT LINE ONLY IF YOU DO NOT PLAN TO ALLOW USE OF ANY MENUBARS:  */
+/* JWT:COMMENT OUT NEXT LINE ONLY IF YOU DO NOT PLAN TO ALLOW USE OF
+   ANY MENUBARS:
+*/
 #define MENUBAR
 /*
  * Choose how many of (experimental) menuBars you want to be able to stack at
