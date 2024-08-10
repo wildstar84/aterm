@@ -3,13 +3,74 @@
 		   (mostly inherited from rxvt distribution )
 --------------------------------------------------------------------------
 -----
+
+    Q: I want to add a menubar (and menus) to my aterm, sort of like
+	the old Solaris dtterm I used to use?
+
+    A: Take a look at the new README.menus file and the well-annotated
+	sample menu file (mymenu.memu) in the doc directory of your source
+	tree or (if installed), usually in /usr[/local]/share/aterm/.  When
+	you have your menu file configured, launch aterm with the new "-mb"
+	option flag.
+
+-----
+
+    Q: How do I paste from the PRIMARY vs. CLIPBOARD using the keyboard?
+
+    A: Control+v pastes the CLIPBOARD content at the cursor position,
+	Alt+v pastes the PRIMARY selection content at the cursor position.
+	Control+C (Shift+Control+c) copies the selection content into the
+	CLIPBOARD (Control+c is already a standard sequence for sending a
+	cancel/break).
+
+-----
+
+    Q: How can I toggle the scrollbar or menubar (visibility)?
+
+    A: Shift+Control+s and Shift+Control+m perform these toggles
+    respectively.  Use the -mb flag to start with your menubar visible.
+
+-----
+
+    Q: What kind of new features have you added to aterm with your new
+	version 2 fork?
+
+    A: I've added the above-mentioned special control sequences, added
+	new, separate foreground color for widgets other than the main
+	terminal window, such as for the menu texts and scrollbar buttons.
+	This allows for having an alternate color, say green for terminal
+	text and white, or say black for the menu buttons.  Also made it
+	possible to work separately with the PRIMARY and CLIPBOARD selections,
+	the way most other apps. do.
+
+	I've also fixed scrollbar transparancy to actually work properly
+	when the main window's transparancy is on (or it's background color
+	when off, even if the background color is changed).
+
+	I've documented how to set up menus, after I had to spend a ton of
+	time groking the code and t&e trying to create my first menubar
+	without hardly any documentation (I've long missed dtterm on Solaris!).
+
+-----
+
+    Q: Why did you fork aterm, Jim?
+
+    A: I wanted all the new features I added above, and it does not
+	appear that Sasha, et. al. are maintaining it any longer.  It's
+	very dated now, but much leaner and meaner than modern terminals -
+	it (now) does everything I want and nothing I don't! ;)
+
+-----
+
     Q:	I'm experiencing "can't open pseudo-tty" errors when starting
 	aterm. What's wrong?
+
     A:	Most likely you don't have Unix98 PTY configured properly.
 	This was a limitation in aterm versions << 0.4.1. Aterm 0.4.1
 	uses getpt() in GLIBC systems, so it should work in Linux
 	systems without UNIX98_PTYS and on GNU/Hurd.
 	Read README.Unix98PTY for additional configuration steps.
+
 -----
 
     Q:	How do I know which aterm version I'm using?

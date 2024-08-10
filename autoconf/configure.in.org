@@ -5,14 +5,14 @@ dnl#
 dnl# Process this file with autoconf to produce a configure script.
 dnl#
 
-AC_INIT(aterm,2.00.00,turnerjw784@yahoo.com,aterm.tar)
+AC_INIT(aterm,1.00.01,as-bugs@afterstep.org,aterm.tar)
 AC_CONFIG_AUX_DIR(autoconf)
 AC_CONFIG_HEADER(config.h:autoconf/config.h.in)
 
 VERSION=$PACKAGE_VERSION
-VERSION_MAJOR="2"
-DATE="01 August 2014"
-LSMDATE="01Aug14"
+VERSION_MAJOR="1"
+DATE="01 August 2007"
+LSMDATE="01Aug07"
 
 
 dnl ATERM version
