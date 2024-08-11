@@ -3,13 +3,13 @@
 #This particular example is based of the old Sun Solaris "dtterm" terminal
 #menubar, see here for image!:  https://deskto.ps/u/fm/d/9woboq
 #
-#To load this manually, start aterm, and then in aterm:
-#cd to the directory this file is in and run:
-#$>./menu [read:/home/.../this/directory/mymenu]
+#To load this manually, start aterm, and then in aterm, run the command:
+#$>aterm_menus.sh [read:/home/.../this/directory/mymenu]
 #
 #To make this menu load when restarting aterm (with -mb), add following
 #line to your ~/.Xdefaults file:
-#aterm.menu: mymenu
+#aterm.menu:    mymenu
+#aterm.menuBar: true
 #
 #Then run (to reload your .Xdefaults config):
 #$>xrdb ~/.Xdefaults
@@ -23,9 +23,8 @@
 #$>cd
 #$>. ./.bashrc
 #
-#Now restart aterm with menubars on:
-#$>aterm -mb &
-#$>-OR- aterm & #and press Shift+Control+M in aterm to toggle the menubar on.
+#Now restart aterm:
+#$>aterm &
 #and you should be all set with a "dtterm-ish" (with a menubar) looking aterm!
 #
 #
@@ -37,7 +36,7 @@
 [menu:bar1]
 #Title to appear in middle of bar:
 [title:dtterm]
-#Add first menubutton:
+#Add first menubutton, labeled "Window":
 /Window/*
 #Add menuitems to that button's menu:
 #For example, add 1st menuitem "New" that launches another aterm:
@@ -52,6 +51,7 @@
 #Add a separator:
 {-}
 {Exit} exit\r
+#Add a second menubutton, labeled "Edit":
 /Edit/*
 #This would send a backspace (char 7f) to the terminal:
 #{Backspace}	0x7f
@@ -67,6 +67,7 @@
 {Del to EOL}{^k} ^@\E[?3K^G
 {Del to BOL}{^K} ^@\E[?4K^G
 {Del line}{+Del} ^@\E[?5K^G
+#Add a third menubutton, labeled "Options":
 /Options/*
 {Menu Bar}{^M} ^^M
 {Scroll Bar}{^S} ^^S
@@ -74,7 +75,8 @@
 {132 columns} ^@\E[?40h^G^@\E[?3h^G
 {80 columns}  ^@\E[?40h^G^@\E[?3l^G
 {-}
-#HERE'S A SUBMENU:  NOTE:FOR SOME REASON, THE 1ST SUBMENU ITEM BEGINS WITH
+#Add 1st submenu under "Edit" labeled "Colors(FG)":
+#NOTE:FOR SOME REASON, THE 1ST SUBMENU ITEM BEGINS WITH
 #ONE DOT, BUT ALL SUBSEQUENT ONES AT SAME LEVEL BEGIN WITH TWO - I DON'T
 #KNOW WHY, BUT IT ONLY WORKS THIS WAY!!:
 ./Colors(FG)/*
@@ -89,7 +91,8 @@
 {black} ^@\E]39;black^G
 {-}
 {reset FG} ^@\E]39;^G
-#ANOTHER SUBMENU ITEM (NOTE: SAME LEVEL AS 1ST, DESPITE 2 DOTS)!:
+#Add 1st submenu under "Edit" labeled "Colors(BG)":
+#(NOTE: SAME LEVEL AS 1ST, DESPITE 2 DOTS)!:
 ../Colors(BG)/*
 {Black} ^@\E]49;black^G
 {Red} ^@\E]49;red^G
@@ -103,13 +106,14 @@
 {Violet} ^@\E]49;rgb:16/00/28^G
 {-}
 {reset BG} ^@\E]49;^G
-#END OF SUBMENU ITEMS, SUBSEQUENT ONES IN MAIN "Options" MENU:
+#END OF SUBMENU ITEMS, SUBSEQUENT ITEMS ADDED TO MAIN "Options" MENU:
 ../
 {Reverse video} ^@\E[?5t^G
 {Auto-wrapping} ^@\E[?7t^G
 {-}
 #This sends a font-change ANSI escape-sequence to the terminal:
 {Font Size}	^@\E]50;#+
+#Add a fourth menubutton, labeled "Help" (but on right side of menubar):
 #This menubutton is packed on the right side of the menubar (note the ">"):
 >/Help/*
 {About} man aterm\r

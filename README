@@ -16,7 +16,7 @@ made since I obtained the source in 2018.
 One of the biggest new features I've added is getting it's menubar code 
 polished and documented up to where a non-code-reading user can actually be 
 able to set up a custom menubar at the top of the terminal window.  I was once 
-a Solaris user at work which used their "dtterm" terminal-emulator program.  
+a Solaris user at work and used their "dtterm" terminal-emulator program.  
 dtterm had a cool menubar up at the top for setting verious options in the 
 terminal, sending common terminal escape sequences with a couple mouse-clicks, 
 and had the nice Copy/Paste options right there in the menu!  I've always 
@@ -52,9 +52,10 @@ changed and fixed.
 
 Enjoy aterm (unofficial) version 2.0!
 
-One thing you could do if you separate terminal options, one with a menubar 
-and one not (or with a different menubar) is to (for example), set up a symlink 
-to aterm, say dtterm, then in your ~/.Xdefaults file, add options like:
+One thing you could do if you want separate terminal options, one with a 
+menubar and one not (or with a different menubar) is to (for example), set up 
+a symlink to aterm, say dtterm, then in your ~/.Xdefaults file, add options 
+like:
 
 dtterm.menuBar: true
 dtterm.menu:    dtterm_menus
@@ -66,8 +67,8 @@ menubar, but when dtterm is launched, it will read the menu file
 an example, well-annotated menu-config file (doc/menu/mymenu.menu) that fairly 
 closely emulates the old dtterm menubar.
 
-Note:  I've included copies of all the original source files I changed under 
-the ".org" extension, ie:  main.c => main.c.org for anyone who just wants the 
-original aterm source from years ago.  To build a genuine stock aterm v1.00.00, 
-simply copy each .org file over it's counterpart and follow the same build 
-instructions.
+Note:  I've included copies of all the original source files I have changed 
+under (before changing them) the ".org" extension, ie:  main.c => main.c.org 
+for anyone who just wants the original aterm source from years ago.  To build 
+a genuine stock aterm v1.00.02, simply copy each .org file over it's 
+counterpart and follow the same build instructions.

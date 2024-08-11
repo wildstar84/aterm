@@ -322,7 +322,7 @@ widgets's background color, such as menubars, etc.
 .IP "\fBtroughColor:\fP \fIcolour\fP" 
 Use the specified colour for the scrollbar\'s trough area [default
 #969696]\&.
-.IP "\fBwidgetBG:\fP \fIcolour\fP" 
+.IP "\fBwidgetFG:\fP \fIcolour\fP" 
 Use the specified colour for widgets other than the main terminal
 window, ie. menubar button text, scrollbar button foregrounds.
 [default black]\&.  Set to something like white if using a dark
@@ -503,6 +503,11 @@ option \fB+ut\fP\&.
 Specify a command pipe for vt100 printer [default \fIlpr(1)\fP]\&.  Use
 \fBPrint\fP to initiate a screen dump to the printer and \fBCtrl-Print\fP
 or \fBShift-Print\fP to include the scrollback as well\&.
+.IP "\fBmenuBar:\fP \fIboolean\fP" 
+\fBTrue\fP: enable the menubar (if configured);
+option \fB-mb\fP\&.
+\fBFalse\fP: disable the menubar [default];
+option \fB+mb\fP\&.
 .IP "\fBscrollBar:\fP \fIboolean\fP" 
 \fBTrue\fP: enable the scrollbar [default];
 option \fB-sb\fP\&.
