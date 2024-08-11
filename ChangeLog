@@ -16,16 +16,14 @@
 	* Menubar:  Added support for right-side menubutton packing:  
 	  Menubuttons are added packed to the left side of menubar.  By adding
 	  a ">" preceeding a top-level menu name in menu config file, it will now 
-	  be packed on the right side.  See the mymenu.menu config file for an 
-	  example.  Also added an option "NO_MENUBAR_ARROWS" (see src/features.h) 
-	  to NOT show the four little triangle arrow-buttons on the right end of 
-	  menubars (which by default are always visible and simply emulate the 
-	  4 corresponding arrow keys on the keyboard).  If built with this 
-	  option defined, some memory will also be saved, as the code that 
-	  produces these arrow-buttons will not be compiled in!
+	  be packed on the right side.
 
 	* Added a "NO_MENUBAR_ARROWS" compile-time option to not include the 4 
-	  arrow buttons at right end of menubars (see feature.h).
+	  arrow buttons at right end of menubars (which by default are always 
+	  visible and simply emulate the 4 corresponding arrow keys on the 
+	  keyboard).  If built with this option defined, some memory will also be 
+	  saved, as the code that produces these arrow-buttons will not be 
+	  compiled in! (see feature.h for setting this).
 
 	* Scrollbar:  Made colors & transparency work properly:  
 	  1) aterm provides 2 color resources:  scrollColor & troughColor, but

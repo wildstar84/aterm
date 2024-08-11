@@ -16,6 +16,13 @@ Using GNU autoconfig
 	Or if you're using a non Bourne-compatible shell, you can do:
 		sh -c 'CFLAGS="-O2 -g" ./configure
 
+	NOTE:  My configure:
+
+	$>export CFLAGS="-march=native -Os"
+	$>export CXXFLAGS="-march=native -Os"
+	$>./configure --prefix=/usr/local --with-term=aterm --disable-utmp 
+			--disable-wtmp --disable-sigsegv
+
   2.	Edit "config.h.README" and adjust anything else you may need or wish
 	to adjust, then compare with the ./configure-generated "config.h"
 	file.  If you changed anything or prefer it's settings then replace

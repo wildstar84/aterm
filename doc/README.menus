@@ -3,7 +3,7 @@ aterm, after finding essentially nothing on Google, or in the other data here!
 When I finally figured out through much t&e how to load the example menu files 
 included, none of them seemed to work and it was difficult making heads or 
 tails of what they contained.  I ended up sifting through and groking the code 
-in menubar.cc and the features.h file and determined that I had to add a line 
+in menubar.c and the features.h file and determined that I had to add a line 
 to the latter allowing menus to even be processed:  "#define MENUBAR 1", just 
 above the line "#define MENUBAR_MAX 8".  I also had to define an environment 
 variable in my .bashrc file specifying a directory for aterm to search for 
@@ -29,7 +29,7 @@ comments before attempting to try the others (which seem to be geared toward
 specific ancient applications, which most of us don't even have anymore).
 
 Also, be aware that these are not mouse-button driven popup menus like those 
-that come with xterm and friends but are a for creating custom user menus, 
+that come with xterm and friends but are for creating custom user menus, 
 on a menubar like those used by the old Solaris/CDE "dtterm" terminal (the 
 last terminal app. that I fondly used and loved back in the day)!  Even though 
 aterm supports multiple menubars (up to 8 by default - if menubars are enabled 
@@ -49,19 +49,18 @@ standard "Copy", "Paste Primary", and "Paste Clipboard" keyboard commands:
 contrasted with ^C (Control+c), which sends a cancel/break/abort to the 
 terminal), ^@v (Alt+v), and ^^v (Control+v) respectively (Note: Only these 
 meta-letter combinations are currently supported.  I also added support for hex 
-characters, specified as "0x##" for specifying character#s 128-255, as 
-originally only 2-digit octal sequences (\0##) were interpreted as characters.  
+characters, specified as "0x##" for specifying character#s 128-255.  
 You will see all these in my mymenu.menu example file.
 
 Note:  I have added one extension to the menu configuration "language" 
 used in the .menu files:  (an optional ">" sign prepended to the name of 
-a top-level menu name - formated otherwise as "/Menu Name/*") that 
+a top-level menu name - formatted otherwise as "/Menu Name/*") that 
 will cause that menu's menubutton to be packed right-justified on the menu-
 bar instead of the default left.  Also note that menubuttons are packed in 
 order that they are encountered in the file starting at the edges and going 
 inward toward the center.  Therefore, if packing more than one right-justified 
 menubutton, they need to appear in the file starting with the "last" (right-
-most) one first, though they may be randomly dispersed among the left-justified 
+most) one first, though they may be randomly dispersed among any left-justified 
 ones in the file.  For example, if file contained "/Left menu1/*, "/Left2/*", 
 ">/Right1/*", "/Left3/*", ">/Right2/*", the menubar would appear as:
 [[Left menu1][Left2][Left3]     bar title     [Right2][Right1][arrows]]
