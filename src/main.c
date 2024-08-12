@@ -973,7 +973,7 @@ resize(void)
     szHint.width = szHint.base_width + TermWin.width;
     szHint.height = szHint.base_height + TermWin.height;
 
-    szHint.flags = PMinSize | PResizeInc | PBaseSize | PWinGravity;
+    szHint.flags |= PMinSize | PResizeInc | PBaseSize | PWinGravity;
 
     XSetWMNormalHints(Xdisplay, TermWin.parent, &szHint);
     XResizeWindow(Xdisplay, TermWin.parent, szHint.width, szHint.height);
@@ -1614,7 +1614,7 @@ change_font(int init, const char *fontname)
     }
 #endif
 
-    szHint.flags = PMinSize | PResizeInc | PBaseSize | PWinGravity;
+    szHint.flags |= PMinSize | PResizeInc | PBaseSize | PWinGravity;
 
     if (!init) {
 	resize();
