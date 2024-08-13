@@ -3,14 +3,15 @@ program from the early 2000s.  It's faster and uses much less resources than
 most all modern terminal emulators, doesn't launch or use dbus or any other 
 processes!  It was originally pared with the AfterStep window-manager, but they 
 later stopped including it and endorsed the bulkier rxvt terminal emulator.  
-I use AfterStep myself (and have forked and improved it as well), but 
-I really prefer AfterStep + their original Aterm for their simplicity and low 
-resource-usage, and which already do everything I need from a wm & terminal!
+I use AfterStep myself (and have forked and improved it as well - see the rest 
+of my GitHub site's other projects), but I really prefer AfterStep + their 
+original Aterm for their simplicity and low resource-usage, and which already 
+do everything I need from a wm & terminal!
 
 *** For a screenshot, see here:  
-https://wildstar84.wordpress.com/wp-content/uploads/2024/08/dtterm-1.png
+https://wildstar84.wordpress.com/wp-content/uploads/2024/08/dtterm-2.png
 
-I'm adding it to my GitHub in order to release all my changes and improvements 
+I've added it to my GitHub in order to release all my changes and improvements 
 made since I obtained the source in 2018.
 
 One of the biggest new features I've added is getting it's menubar code 
@@ -22,28 +23,31 @@ terminal, sending common terminal escape sequences with a couple mouse-clicks,
 and had the nice Copy/Paste options right there in the menu!  I've always 
 missed this since moving over to Linux, as xterm, aterm, and most other 
 terminals either lack this capability entirely, or else only offer a standard, 
-non-customizable menubar (like lxterminal).
+non-customizable menubar (like lxterminal).  I can't speak for the massively 
+heavy Gnome-shell or whatever KDE's terminal is as I've never condidered 
+using those.
 
-I ended up with aterm's source when AfterStep went rxvt, I decided to add a 
+I snagged aterm's source when AfterStep switched to rxvt, and decided to add a 
 few standard key sequences for such things a pasting PRIMARY vs CLIPBOARD, etc. 
 and discovered that it had an entire source file dedicated to menubars!  
 I had never seen an aterm with a menubar but searched diligently for how to 
 make them work and discovered that it was designed to accept custom menu files, 
 but almost no documentation on how to get one actually displayed and working.  
-Turns out that it required adding a non-documented compiler directive and 
-recompiling to include that code!  I also couldn't find an action string 
+Turns out that it required setting a non-documented compiler directive and 
+recompiling to use that code!  I also couldn't find an action string 
 sequence that I could have a menu item send to do Copy or Paste, so I started 
 working on it (and added a bunch more settings to my new menu and made it look 
-alot like the old "dtterm" that I was familiar with)!  I would have first filed 
+alot like the old "dtterm" that I fondly remembered)!  I would have first filed 
 a change request with aterm, but the project lead (who also was lead developer 
-on AfterStep) has not released anything on either in many years, so if I 
-wanted these changes I'd have to get to work on them myself, so here we are 
-today!  Anyway, if you're interested in a lean, small, fast standalone terminal 
+on AfterStep) has not released anything on either in many years, so if I really 
+wanted these changes I'd have to get to work on them myself, so here we are!  
+Anyway, if you're interested in a lean, small, fast standalone terminal 
 for Linux without dbus, systemd, or any other under-the-hood behind-your-back 
 interprocess communication or data-collection of most modern software; and/or 
-miss the classic old "dtterm" and it's handy, hidable menubar, or want to be 
-able to set up a completely transparent terminal, please feel free to download, 
-build, and install this new fork of the original aterm!  
+miss the classic old "dtterm" and it's handy, toggleable menubar; or want to be 
+able to set up a completely transparent terminal (that stays transparent as you 
+move or resize it, please feel free to download, build, and install this new 
+fork of the original aterm!  
 
 See the README.configure and INSTALL files for how to build and install on your 
 modern Linux/Unix system.  Also Check out the FAQ and ChangeLog file for more 
@@ -53,8 +57,8 @@ changed and fixed.
 Enjoy aterm (unofficial) version 2.0!
 
 One thing you could do if you want separate terminal options, one with a 
-menubar and one not (or with a different menubar) is to (for example), set up 
-a symlink to aterm, say dtterm, then in your ~/.Xdefaults file, add options 
+menubar and one without (or with a different menubar) is to (for example), set 
+up a symlink to aterm, say dtterm, then in your ~/.Xdefaults file, add options 
 like:
 
 dtterm.menuBar: true
@@ -65,7 +69,7 @@ to launch each as a separate app.  When aterm is launched it will have no
 menubar, but when dtterm is launched, it will read the menu file 
 "dtterm_menus" (See the doc/README.menus on where to put your menu file), and 
 an example, well-annotated menu-config file (doc/menu/mymenu.menu) that fairly 
-closely emulates the old dtterm menubar.
+closely emulates the old dtterm menubar to start with.
 
 Note:  I've included copies of all the original source files I have changed 
 under (before changing them) the ".org" extension, ie:  main.c => main.c.org 
