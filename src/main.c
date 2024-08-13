@@ -902,7 +902,7 @@ Create_Windows(int argc, char *argv[])
 Bool
 resize_subwindows(int width, int height)
 {
-    int             x = 0, y = 0;
+    int             x = 0, y = 0, mb_height = 0;
     int             old_width = TermWin.width;
     int             old_height = TermWin.height;
 
@@ -910,9 +910,15 @@ resize_subwindows(int width, int height)
     TermWin.height = TermWin.nrow * TermWin.fheight;
 
 /* size and placement */
+#ifdef MENUBAR
+	if (menubar_visible()) {
+	    y = mb_height = menuBar_TotalHeight(); /* for placement of vt window */
+	    Resize_menuBar(0, 0, (scrollbar_visible() ? width+(2 * sb_shadow)+SB_WIDTH : width), y);
+	}
+#endif
     if (scrollbar_visible()) {
 	scrollBar.beg = 0;
-	scrollBar.end = height;
+	scrollBar.end = height - mb_height;
 #ifndef XTERM_SCROLLBAR
 # ifdef NEXT_SCROLLBAR
     /* arrows can be different */
@@ -926,20 +932,17 @@ resize_subwindows(int width, int height)
 
 	width -= (SB_WIDTH + 2 * sb_shadow);
 	if (Options & Opt_scrollBar_right)
-	    XMoveResizeWindow(Xdisplay, scrollBar.win, width, 0,
-			      (SB_WIDTH + 2 * sb_shadow), height);
+	    XMoveResizeWindow(Xdisplay, scrollBar.win, width, mb_height,
+			      (SB_WIDTH + 2 * sb_shadow), height-mb_height);
 	else {
-	    XMoveResizeWindow(Xdisplay, scrollBar.win, 0, 0,
-			      (SB_WIDTH + 2 * sb_shadow), height);
+	    XMoveResizeWindow(Xdisplay, scrollBar.win, 0, mb_height,
+			      (SB_WIDTH + 2 * sb_shadow), height-mb_height);
 	    x = (SB_WIDTH + 2 * sb_shadow);	/* placement of vt window */
 	}
-    }
-    { /* ONLYIF MENUBAR */
-#ifdef MENUBAR
-	if (menubar_visible()) {
-	    y = menuBar_TotalHeight();	/* for placement of vt window */
-	    Resize_menuBar(x, 0, width, y);
-	}
+#ifdef TRANSPARENT
+	/* JWT:NEEDED FOR TRANSPARENT SCROLLBARS: */
+    if (scrollbar_visible())
+	    refresh_transparent_scrollbar();
 #endif
     }
     XMoveResizeWindow(Xdisplay, TermWin.vt, x, y, width, height + 1);
@@ -1013,6 +1016,11 @@ resize_window1(unsigned int width, unsigned int height)
 	if (curr_screen >= 0)	/* this is not the first time thru */
 	    scr_change_screen(curr_screen);
 	first_time = 0;
+#ifdef TRANSPARENT
+	/* JWT:NEEDED FOR TRANSPARENT SCROLLBARS: */
+    if (scrollbar_visible())
+	    refresh_transparent_scrollbar();
+#endif
     }
 }
 
@@ -2452,6 +2460,11 @@ main(int argc, char *argv[])
     if (!setlocale(LC_CTYPE, "")) print_error("Cannot set locale");
 
     init_command(cmd_argv);
+#ifdef TRANSPARENT
+	/* JWT:NEEDED FOR TRANSPARENT SCROLLBARS: */
+    if (scrollbar_visible())
+	    refresh_transparent_scrollbar();
+#endif
 
     main_loop();		/* main processing loop */
     return EXIT_SUCCESS;

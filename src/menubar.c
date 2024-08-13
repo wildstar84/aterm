@@ -770,17 +770,20 @@ menu_add(menu_t * parent, char *path, Bool rjust)
 
 /* PROTO */
 void
-drawbox_menubar(int x, int len, int state)
+drawbox_menubar(int x, int len, int state, int shift_pix)
 {
 #ifdef MENUBAR
     GC              top, bot;
 
     x = Width2Pixel(x);
+	if (x > 0 || len < TermWin.ncol) /* JWT:UNLESS FILLING ENTIRE MENUBAR ROW: */
+        x += shift_pix;
+
     len = Width2Pixel(len + HSPACE);
     if (x >= TermWin.width)
-	return;
-    else if (x + len >= TermWin.width)
-	len = (TermWin_TotalWidth() - x);
+        return;
+    else if (x + shift_pix + len >= TermWin.width)
+        len = (TermWin_TotalWidth() - (x-shift_pix));
 
 #ifdef MENUBAR_SHADOW_IN
     state = -state;
@@ -950,6 +953,7 @@ menu_show(void)
 {
 #ifdef MENUBAR
     int             x, y, xright;
+    int             rs_pix = 0;
     menuitem_t     *item;
 
     if (ActiveMenu == NULL)
@@ -959,14 +963,20 @@ menu_show(void)
     if (ActiveMenu->parent == NULL) {
 	register int    h;
 
-	drawbox_menubar(x, ActiveMenu->len, -1);
+	rs_pix = (ActiveMenu->right_just && scrollbar_visible()) ? (2 * sb_shadow)+SB_WIDTH : 0;
+	drawbox_menubar(x, ActiveMenu->len, -1, rs_pix);
 	x = Width2Pixel(x);
 
-	ActiveMenu->y = 1;
+	/* JWT:CHGD. TO NEXT TO FIX OFF-BY-1 BUG NOTICABLE ON TRANSPARENT TERMINALS!:    ActiveMenu->y = 1; */
+	ActiveMenu->y = 0;
 	ActiveMenu->w = Menu_PixelWidth(ActiveMenu);
 
-	if ((x + ActiveMenu->w) >= TermWin.width)
-	    x = (TermWin_TotalWidth() - ActiveMenu->w);
+    if ((Options & Opt_scrollBar_right) || x < rs_pix)
+        x += rs_pix; /* JWT:WE'RE NOW IN TERMWIN COORDS, SO ONLY SHIFT DD-MENU IF SB ON RIGHT */
+                     /* -OR- IF (SCROLLBAR ON LEFT AND) MENUBUTTON IS ABOVE SCROLLBAR (LEFT OF TEXT): */
+
+    if ((x + ActiveMenu->w) >= TermWin.width)
+        x = (TermWin_TotalWidth() - ActiveMenu->w);
 
     /* find the height */
 	for (h = 0, item = ActiveMenu->head; item != NULL; item = item->next) {
@@ -994,15 +1004,16 @@ menu_show(void)
 		ActiveMenu->w, ActiveMenu->h);
 
 /* determine the correct right-alignment */
-    for (xright = 0, item = ActiveMenu->head; item != NULL; item = item->next)
-	if (item->len2 > xright)
-	    xright = item->len2;
+    for (xright = 0, item = ActiveMenu->head; item != NULL; item = item->next) {
+        if (item->len2 > xright)
+            xright = item->len2;
+    }
 
+	const int       xoff = (SHADOW + Width2Pixel(HSPACE) / 2);
+	const int       yoff = (SHADOW + MENU_MARGIN);
     for (y = 0, item = ActiveMenu->head;
 	 item != NULL;
 	 item = item->next) {
-	const int       xoff = (SHADOW + Width2Pixel(HSPACE) / 2);
-	const int       yoff = (SHADOW + MENU_MARGIN);
 	register int    h;
 	GC              gc = menubarGC;
 
@@ -1090,15 +1101,19 @@ void
 menu_display(void (*update) (void))
 {
 #ifdef MENUBAR
+    int rs_pix;
     if (ActiveMenu == NULL)
-	return;
+        return;
+
     if (ActiveMenu->win != None)
 	XDestroyWindow(Xdisplay, ActiveMenu->win);
     ActiveMenu->win = None;
     ActiveMenu->item = NULL;
+    rs_pix = (ActiveMenu->right_just && scrollbar_visible()) ? (2 * sb_shadow)+SB_WIDTH : 0;
 
     if (ActiveMenu->parent == NULL)
-	drawbox_menubar(ActiveMenu->x, ActiveMenu->len, +1);
+        drawbox_menubar(ActiveMenu->x, ActiveMenu->len, +1, rs_pix);
+
     ActiveMenu = ActiveMenu->parent;
     update();
 #endif
@@ -1453,7 +1468,7 @@ menubar_dump(FILE * fp)
 	    fprintf(fp, "[title:%s]\n", bar->title);
 
 #ifndef NO_MENUBAR_ARROWS
-	for (i = 0; i < NARROWS; i++) {
+	for (int i = 0; i < NARROWS; i++) {
 	    switch (bar->arrows[i].type) {
 	    case MenuTerminalAction:
 	    case MenuAction:
@@ -1974,13 +1989,12 @@ draw_Arrows(int name, int state)
 	return;
 
     for (i = 0; i < NARROWS; i++) {
-	const int       w = Width2Pixel(1);
-	const int       y = (menuBar_TotalHeight() - w) / 2;
-	int             x = Arrows_x + (5 * Width2Pixel(i)) / 4;
+        const int       w = Width2Pixel(1);
+        const int       y = (menuBar_TotalHeight() - w) / 2;
+        int             x = Arrows_x + (5 * Width2Pixel(i)) / 4;
 
-	if (!name || name == Arrows[i].name)
-	    Draw_Triangle(menuBar.win, top, bot, x, y, w,
-			  Arrows[i].name);
+        if (!name || name == Arrows[i].name)
+            Draw_Triangle(menuBar.win, top, bot, x, y, w, Arrows[i].name);
     }
     XFlush(Xdisplay);
 #endif
@@ -2039,11 +2053,13 @@ menubar_expose(void)
 	int             len, ncol = TermWin.ncol;
     int xl = 0;
     int xr = TermWin.ncol;
+    int rs_pix = 0;
 
 #ifndef NO_MENUBAR_ARROWS
 	if (x < (ncol - (NARROWS + 1))) {
-	    ncol -= (NARROWS + 1);
-	    Arrows_x = Width2Pixel(ncol);
+	    rs_pix = scrollbar_visible() ? (2 * sb_shadow)+SB_WIDTH : 0;
+	    ncol -= (NARROWS + 2);
+	    Arrows_x = Width2Pixel(ncol) + rs_pix + Width2Pixel(HSPACE);
 	}
 	xr = ncol;
 #endif
@@ -2055,9 +2071,11 @@ menubar_expose(void)
             x = xr;
             menu->x = x - (menu->len + HSPACE);
             xr = menu->x;
+            rs_pix = (menu->right_just && scrollbar_visible()) ? (2 * sb_shadow)+SB_WIDTH : 0;
 	    } else {
             menu->x = xl;
             xl = menu->x + (menu->len + HSPACE);
+            rs_pix = 0;
 	    }
 
 #ifdef DEBUG_MENU_LAYOUT
@@ -2067,19 +2085,21 @@ menubar_expose(void)
 	    if (x > TermWin.ncol)
 		len = (TermWin.ncol - (menu->x + HSPACE));
 
-	    drawbox_menubar(menu->x, len, +1);
+	    drawbox_menubar(menu->x, len, +1, rs_pix);
 
 	    XDrawString(Xdisplay,
 			menuBar.win, menubarGC,
-			(Width2Pixel(menu->x) + Width2Pixel(HSPACE) / 2),
+			(Width2Pixel(menu->x) + Width2Pixel(HSPACE) / 2) + rs_pix,
 			menuBar_height() - MENU_MARGIN,
 			menu->name, len);
 
 	    if (x > TermWin.ncol)
 		break;
 	}
+    } else {
+        rs_pix = scrollbar_visible() ? sb_shadow+SB_WIDTH : 0;
+        drawbox_menubar(0, TermWin.ncol, -1, rs_pix);
     }
-    drawbox_menubar(x, TermWin.ncol, (CurrentBar ? +1 : -1));
 
 /* add the menuBar title, if it exists and there's plenty of room */
     if (xl < ncol) {  /* HAVE ROOM FOR AT LEAST THE ARROWS: */
@@ -2123,11 +2143,12 @@ menubar_expose(void)
 		x = (x <= xl || x + len >= xr)
 			? Width2Pixel(xl) + (Width2Pixel((xr - xl) - len)) / 2
 			: Width2Pixel(x);
+	    rs_pix = scrollbar_visible() ? sb_shadow+SB_WIDTH : 0;
 
 	    XDrawString(Xdisplay,
 			menuBar.win, menubarGC,
 			/* JWT:x WAS Width2Pixel(xl) + Width2Pixel((ncol0 - xr) + HSPACE) / 2, */
-			x,
+			x + (rs_pix / 2),
 			menuBar_height() - MENU_MARGIN,
 			title, len);
     }
@@ -2314,6 +2335,7 @@ menubar_select(XButtonEvent * ev)
 	for (menu = CurrentBar->head; menu != NULL; menu = menu->next) {
 	    int             x = Width2Pixel(menu->x);
 	    int             w = Width2Pixel(menu->len + HSPACE);
+        x += (menu->right_just && scrollbar_visible()) ? sb_shadow+SB_WIDTH : 0;
 
 	    if ((ev->x >= x && ev->x < x + w))
 		break;
@@ -2327,7 +2349,7 @@ menubar_select(XButtonEvent * ev)
     case ButtonPress:
 	if (menu == NULL && Arrows_x && ev->x >= Arrows_x) {
 #ifndef NO_MENUBAR_ARROWS
-	    for (i = 0; i < NARROWS; i++) {
+	    for (int i = 0; i < NARROWS; i++) {
 		if (ev->x >= (Arrows_x + (Width2Pixel(4 * i + i)) / 4) &&
 		    ev->x < (Arrows_x + (Width2Pixel(4 * i + i + 4)) / 4)) {
 		    draw_Arrows(Arrows[i].name, -1);
@@ -2356,7 +2378,7 @@ menubar_select(XButtonEvent * ev)
 		    if (CurrentBar == NULL ||
 			(CurrentBar->arrows[i].type != MenuAction &&
 			 CurrentBar->arrows[i].type != MenuTerminalAction)) {
-			if (Arrows[i].str != NULL && Arrows[i].str[0])
+			if (Arrows[i].str[0])
 			    printf("(default) \\033%s\n",
 				   &(Arrows[i].str[2]));
 		    } else {
@@ -2365,8 +2387,7 @@ menubar_select(XButtonEvent * ev)
 #else				/* DEBUG_MENUARROWS */
 		    if (CurrentBar == NULL ||
 			action_dispatch(&(CurrentBar->arrows[i]))) {
-			if (Arrows[i].str != NULL &&
-			    Arrows[i].str[0] != 0)
+			if (Arrows[i].str[0] != 0)
 			    tt_write((Arrows[i].str + 1),
 				     Arrows[i].str[0]);
 		    }
