@@ -9,9 +9,7 @@
 #include "menubar.pro"
 #include "misc.pro"
 #include "netdisp.pro"
-#ifndef NO_RMEMSET
 #include "rmemset.pro"
-#endif
 #include "screen.pro"
 #include "thai.pro"
 # include "scrollbar.pro"

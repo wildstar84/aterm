@@ -32,8 +32,6 @@
 /* JWT:DEPRECIATED? - JUST CAUSES WARNINGS!: static const char rcsid[] = "$Id: rmemset.c,v 1.1.1.1 2004/11/10 17:21:47 sasha Exp $"; */
 #endif
 
-#include "../config.h"
-#ifndef NO_RMEMSET
 #include "rxvt.h"		/* NECESSARY */
 
 #ifdef PROTOTYPES
@@ -83,5 +81,3 @@ rmemset(void *p, unsigned char c, R_int_p_t len)
     for (; len--;)
 	*lp++ = c;
 }
-
-#endif
