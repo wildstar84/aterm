@@ -2526,6 +2526,11 @@ process_x_event(XEvent * ev)
 	while( XCheckTypedWindowEvent( Xdisplay, ev->xconfigure.window, ConfigureNotify, ev ) );
 	resize_window(ev);
 	menubar_expose();
+#ifdef TRANSPARENT
+	/* JWT:NEEDED FOR TRANSPARENT SCROLLBARS: */
+    if (scrollbar_visible())
+	    refresh_transparent_scrollbar();
+#endif
 	break;
 
     case SelectionClear:

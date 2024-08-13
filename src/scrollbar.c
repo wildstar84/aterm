@@ -522,7 +522,6 @@ typedef struct {
 
 Pixmap scrollbar_fill_back( unsigned int height, int check_cache )
 {
-
   Pixmap buffer = None;
 #ifdef TRANSPARENT
   static TransparencyCache tCache = {None, -1, -1, 0, None};
@@ -536,14 +535,16 @@ Pixmap scrollbar_fill_back( unsigned int height, int check_cache )
     {
       Pixmap root_pmap = None ;
       unsigned int root_width = 0, root_height = 0 ;
-	if( check_cache == 1 )
+	if( check_cache > 0 )
 	{
 	  int cache_valid = 0 ;
     	    root_pmap = ValidatePixmap(root_pmap, 1, 1, &root_width, &root_height);
 	    if( height == tCache.height && root_pmap == tCache.root )
 	    {
 	      int my_x, my_y ;
-		if( GetWinPosition(scrollBar.win, &my_x, &my_y) )
+	    if (check_cache == 2)
+	        cache_valid = 0;  /* FORCE REFRESH! */
+		else if( GetWinPosition(scrollBar.win, &my_x, &my_y) )
 		{
 		    if( my_x== tCache.x && my_y == tCache.y ) cache_valid = 1 ;
 		    else { tCache.x = my_x ; tCache.y = my_y ; }
@@ -619,9 +620,8 @@ scrollbar_show_cached(int update, int check_cache)
 
 	scrollbar_len = scrollBar.bot - scrollBar.top;
     /* no change */
-	if ((scrollBar.top == last_top) && (scrollBar.bot == last_bot))
+	if (scrollBar.top == last_top && scrollBar.bot == last_bot)
 	    return 0;
-
     }
 
     last_top = scrollBar.top;
@@ -692,8 +692,7 @@ scrollbar_show_cached(int update, int check_cache)
 int
 scrollbar_show(int update)
 {
-    return scrollbar_show_cached(update,
-            (IS_TRANSP_WINDOW && IS_TRANSP_SCROLL) ? 1 : 0);
+    return scrollbar_show_cached(update, 0);
 }
 
 /* PROTO */
@@ -721,8 +720,8 @@ void
 refresh_transparent_scrollbar()
 {
 #ifdef TRANSPARENT
-    if( IS_TRANSP_SCROLL )	scrollbar_show_cached(0,
-            (IS_TRANSP_WINDOW && IS_TRANSP_SCROLL) ? 1 : 0);
+    if( IS_TRANSP_SCROLL )
+        scrollbar_show_cached(0, (IS_TRANSP_WINDOW && IS_TRANSP_SCROLL) ? 2 : 0);
 #endif
 }
 
