@@ -35,7 +35,7 @@
  *----------------------------------------------------------------------*/
 
 #ifndef lint
-static const char rcsid[] = "$Id: xdefaults.c,v 1.5 2005/12/06 17:08:44 sasha Exp $";
+/* JWT:DEPRECIATED? - JUST CAUSES WARNINGS!: static const char rcsid[] = "$Id: xdefaults.c,v 1.5 2005/12/06 17:08:44 sasha Exp $"; */
 #endif
 
 #include "rxvt.h"		/* NECESSARY */
