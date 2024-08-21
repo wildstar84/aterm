@@ -149,7 +149,7 @@
 
 /* Define to 1 if you have the `wait3' system call. Deprecated, you should no
    longer depend upon `wait3'. */
-#define HAVE_WAIT3 1
+#undef HAVE_WAIT3
 
 /* Define if you want KANJI support */
 /* #undef KANJI */
@@ -167,6 +167,7 @@
 /* #undef NO_RESOURCES */
 
 /* Define if you want to use your system's memset() */
+/* JWT:NOTE: THEIR RMEMSET (BELOW UNDEF) STILL SEEMS FASTER WHEN SCROLLING!: */
 /* #undef NO_RMEMSET */
 
 /* Define if you want continual scrolling on when you keep the scrollbar
