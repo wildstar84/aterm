@@ -594,9 +594,11 @@ Left double-click to select a word; Left triple-click to select
 the entire line\&.
 .IP 
 .IP "\fBInsertion\fP:" 
-Pressing and releasing the Middle mouse button (or \fBShift-Insert\fP)
-in an \fBaterm\fP window causes the current text selection to be inserted
-as if it had been typed on the keyboard\&.
+Pressing and releasing the Middle mouse button (or \fBShift-Insert\fP or
+\fBAlt-v\fP) in an \fBaterm\fP window causes the current text selection to
+be inserted as if it had been typed on the keyboard\&.  This inserts (pastes)
+the PRIMARY select buffer.  To insert (paste) the content of the system
+CLIPBOARD, you can now press \fBControl-v\fP.
 .SH "CHANGING FONTS" 
 .PP 
 You can change fonts on-the-fly, which is to say cycle through the default
@@ -664,7 +666,7 @@ Black on White\&.
 id number of the \fBaterm\fP window and it also uses and sets the environment
 variable \fBDISPLAY\fP to specify which display terminal to use\&.  \fBaterm\fP uses
 the environment variables \fBATERMPATH\fP, then \fBRXVTPATH\fP and finally \fBPATH\fP
-to find XPM files\&.
+to find XPM files and menu-configuration (*.menu) files\&.
 .SH "FILES" 
 .PP 
 .IP "\fB/etc/utmp\fP" 
