@@ -22,7 +22,7 @@
  *----------------------------------------------------------------------*/
 
 #ifndef lint
-/* static const char rcsid[] = "$Id: menubar.c,v 1.1.1.1 2004/11/10 17:21:46 sasha Exp $"; */
+/* JWT:DEPRECIATED? - JUST CAUSES WARNINGS!: static const char rcsid[] = "$Id: menubar.c,v 1.1.1.1 2004/11/10 17:21:46 sasha Exp $"; */
 #endif
 
 #include "rxvt.h"		/* NECESSARY */
@@ -58,8 +58,14 @@ static GC       topShadowGC, botShadowGC, neutralGC, menubarGC;
 struct menu_t;
 
 static int      menu_readonly = 1;	/* okay to alter menu? */
-static int      Arrows_x = 0;
+static Bool     popupvisible; /* TRUE MEANS (NON-MENUBAR) POPUP MENU IS DISPLAYED */
+/* static char     prev_aname[80]; */ /* JWT:BUFFER FOR LAST ACTIVE-MENU NAME (EFFICIENCY) - MENU NAMES SHOULD *NEVER* EXCEED 79 CHARS! */
+static menuitem_t  *prev_menu; /* JWT:BUFFER FOR LAST ACTIVE-MENU NAME (EFFICIENCY) - MENU NAMES SHOULD *NEVER* EXCEED 79 CHARS! */
+static Cursor   menu_cursor; /* JWT:GIVE OUR POPUP MENU THE SAME CURSOR USED BY MENUBAR MENUS */
+
 #ifndef NO_MENUBAR_ARROWS
+static int      Arrows_x = 0;
+
 static const struct {
     char            name;	/* (l)eft, (u)p, (d)own, (r)ight */
     unsigned char   str[4];	/* str[0] = strlen (str+1) */
@@ -74,10 +80,10 @@ static const struct {
 #if (MENUBAR_MAX > 1)
 static int      Nbars = 0;
 static bar_t   *CurrentBar = NULL;
-#else				/* (MENUBAR_MAX > 1) */
+#else	
 static bar_t    BarList;
 static bar_t   *CurrentBar = &BarList;
-#endif				/* (MENUBAR_MAX > 1) */
+#endif
 
 static menu_t  *ActiveMenu = NULL;	/* currently active menu */
 #endif
@@ -144,7 +150,8 @@ menuitem_free(menu_t * menu, menuitem_t * item)
 	FREE(item->entry.action.str);
 	break;
     case MenuSubMenu:
-	(void)menu_delete(item->entry.submenu.menu);
+    if (menu != CurrentBar->popup)  /* JWT:AVOID DOUBLE-DELETE! */
+		(void)menu_delete(item->entry.submenu.menu);
 	break;
     }
     if (item->name != NULL)
@@ -241,6 +248,21 @@ action_dispatch(action_t * action)
     }
 #endif
     return 0;
+}
+
+/* JWT:NEW FUNCTION TO SEND CMD. DIRECTLY TO TERMINAL W/O AN ACTION OBJECT: */
+void
+command_dispatch(char * esc_sequence)
+{
+#ifdef MENUBAR
+	unsigned int len;
+	unsigned char str[50];
+	menu_reallyhide_all(NULL);
+	strcpy((char *)str, esc_sequence);
+	len = Str_escaped((char *) str);
+	len = hex2char(str, len);  /* JWT:ADDED TO CONVERT HEX CHARS IN MENUITEM-ACTION STRINGS TO ACTUAL CHARS. */
+	cmd_write(str, len);
+#endif
 }
 
 /* return the arrow index corresponding to NAME */
@@ -648,6 +670,8 @@ menu_delete(menu_t * menu)
     if (parent == NULL) {
 	const int       len = (menu->len + HSPACE);
 
+	/* JWT:PARENTLESS MENUS ARE HANGING AS MENUITEMS ON OUR POPUP MENU TOO, SO REMOVE IT THERE IF SO: */
+
 	if (CurrentBar->tail == menu)
 	    CurrentBar->tail = prev;
 	if (CurrentBar->head == menu)
@@ -686,7 +710,7 @@ menu_delete(menu_t * menu)
 
 /* PROTO */
 menu_t         *
-menu_add(menu_t * parent, char *path, Bool rjust)
+menu_add(menu_t * parent, char *path, Bool rjust, Bool hiddn)
 {
 #ifdef MENUBAR
     menu_t         *menu;
@@ -706,7 +730,7 @@ menu_add(menu_t * parent, char *path, Bool rjust)
 	    if (path[0] == '\0')
 		return NULL;
 
-	    parent = menu_add(parent, path, False);
+	    parent = menu_add(parent, path, False, False);
 	    path = (p + 1);
 	}
     }
@@ -737,6 +761,8 @@ menu_add(menu_t * parent, char *path, Bool rjust)
     menu->win = None;
     menu->x = menu->y = menu->w = menu->h = 0;
     menu->right_just = rjust;
+    menu->hidden = hiddn;
+    menu->displayed = False;
     menu->item = NULL;
 
 /* add to tail of list */
@@ -749,6 +775,34 @@ menu_add(menu_t * parent, char *path, Bool rjust)
 		    CurrentBar->head = menu;	/* fix head */
 		if (menu->prev)
 	        menu->x = (menu->prev->x + menu->prev->len + HSPACE);
+
+		/* JWT:NEXT 2 IF-BLOCKS ADDED 20140814 TO DO POPUP VERSION OF THE MENUBAR MENUS: */
+		if (CurrentBar->popup == NULL) {
+		    if ((CurrentBar->popup = (menu_t *)MALLOC(sizeof(menu_t))) != NULL) {
+	            CurrentBar->popup->width = 0;
+	            CurrentBar->popup->parent = NULL;
+	            CurrentBar->popup->name = NULL;
+	            CurrentBar->popup->len = 0;  /* JWT:MUST STAY ZERO, AS menu_show() USES THIS TO TELL WE'RE A NON-MENUBAR MENU! */
+	            CurrentBar->popup->head = NULL;
+	            CurrentBar->popup->tail = NULL;
+	            CurrentBar->popup->prev = NULL;
+	            CurrentBar->popup->next = NULL;
+	            CurrentBar->popup->item = NULL;
+	            CurrentBar->popup->win = None;
+	            CurrentBar->popup->hidden = False;
+	            CurrentBar->popup->displayed = False;
+	        }
+		}
+	    if (CurrentBar->popup != NULL) { /* JWT:WHEN ADDED, ADD EACH MENUBAR-BUTTON MENU TO OUR POPUP MENU: */
+	        menuitem_t *item = menuitem_add(CurrentBar->popup, menu->name, "", "");
+			if (item != NULL) {
+				assert(item->entry.type == MenuLabel);
+				item->name = menu->name;
+				item->len = menu->len;
+				item->entry.type = MenuSubMenu;
+				item->entry.submenu.menu = menu;
+			}
+		}
     } else {
 		menuitem_t     *item;
 
@@ -780,9 +834,11 @@ drawbox_menubar(int x, int len, int state, int shift_pix)
         x += shift_pix;
 
     len = Width2Pixel(len + HSPACE);
-    if (x >= TermWin.width)
-        return;
-    else if (x + shift_pix + len >= TermWin.width)
+    if (x > TermWin.width) {
+        len -= (x - TermWin.width);
+        x = TermWin.width;
+	}
+    if (x + shift_pix + len >= TermWin.width)
         len = (TermWin_TotalWidth() - (x-shift_pix));
 
 #ifdef MENUBAR_SHADOW_IN
@@ -809,7 +865,7 @@ drawbox_menubar(int x, int len, int state, int shift_pix)
 
 /* PROTO */
 void
-drawtriangle(int x, int y, int state)
+drawtriangle(int x, int y, int state, char direction)
 {
 #ifdef MENUBAR
     GC              top, bot;
@@ -834,10 +890,14 @@ drawtriangle(int x, int y, int state)
 
     w = menu_height() / 2;
 
-    x -= (SHADOW + MENU_MARGIN) + (3 * w / 2);
+    if (x >= 0)
+        x -= (SHADOW + MENU_MARGIN) + (3 * w / 2);
+    else
+        x = -1 * x;  /* JWT:NEED ABILITY TO CALL THIS W/O ADJUSTMENTS NOW (IN MENUBAR). */
+
     y += (SHADOW + MENU_MARGIN) + (w / 2);
 
-    Draw_Triangle(ActiveMenu->win, top, bot, x, y, w, 'r');
+    Draw_Triangle(ActiveMenu->win, top, bot, x, y, w, direction);
 #endif
 }
 
@@ -890,9 +950,8 @@ print_menu_ancestors(menu_t * menu)
 
 	for (item = menu->parent->head; item != NULL; item = item->next) {
 	    if (item->entry.type == MenuSubMenu &&
-		item->entry.submenu.menu == menu) {
-		break;
-	    }
+		item->entry.submenu.menu == menu)
+			break;
 	}
 	if (item == NULL) {
 	    printf("is an orphan!\n");
@@ -952,147 +1011,219 @@ void
 menu_show(void)
 {
 #ifdef MENUBAR
-    int             x, y, xright;
-    int             rs_pix = 0;
-    menuitem_t     *item;
+	int             x, y, xright;
+	int             rs_pix = 0;
+	menuitem_t     *item;
 
-    if (ActiveMenu == NULL)
-	return;
+	if (ActiveMenu == NULL)
+		return;  /* noting to show. */
 
-    x = ActiveMenu->x;
-    if (ActiveMenu->parent == NULL) {
-	register int    h;
+	x = popupvisible ? CurrentBar->popup->x + CurrentBar->popup->w : ActiveMenu->x;
+	y = popupvisible ? CurrentBar->popup->y : ActiveMenu->y;
+	if (ActiveMenu->parent == NULL) {
+		register int    h;
+		if (!popupvisible) {
+			rs_pix = (ActiveMenu->right_just && scrollbar_visible()) ? (2 * sb_shadow)+SB_WIDTH : 0;
+			drawbox_menubar(x, ActiveMenu->len, -1, rs_pix);
+	 		if (ActiveMenu->name != NULL && ActiveMenu->name[0] == '<' && ActiveMenu->name[1] == 0)
+	 			return;  /* JWT:SPECIAL "<"(Previous Menubar) BUTTON: */
 
-	rs_pix = (ActiveMenu->right_just && scrollbar_visible()) ? (2 * sb_shadow)+SB_WIDTH : 0;
-	drawbox_menubar(x, ActiveMenu->len, -1, rs_pix);
-	x = Width2Pixel(x);
+			x = Width2Pixel(x);
 
-	/* JWT:CHGD. TO NEXT TO FIX OFF-BY-1 BUG NOTICABLE ON TRANSPARENT TERMINALS!:    ActiveMenu->y = 1; */
-	ActiveMenu->y = 0;
-	ActiveMenu->w = Menu_PixelWidth(ActiveMenu);
+			/* JWT:CHGD. TO NEXT TO FIX OFF-BY-1 BUG NOTICABLE ON TRANSPARENT TERMINALS!:    ActiveMenu->y = 1; */
+			if (ActiveMenu->len > 0)
+				ActiveMenu->y = 0;
 
-    if ((Options & Opt_scrollBar_right) || x < rs_pix)
-        x += rs_pix; /* JWT:WE'RE NOW IN TERMWIN COORDS, SO ONLY SHIFT DD-MENU IF SB ON RIGHT */
-                     /* -OR- IF (SCROLLBAR ON LEFT AND) MENUBUTTON IS ABOVE SCROLLBAR (LEFT OF TEXT): */
+			if ((Options & Opt_scrollBar_right) || x < rs_pix)
+					x += rs_pix; /* JWT:WE'RE NOW IN TERMWIN COORDS, SO ONLY SHIFT DD-MENU IF SB ON RIGHT */
+					/* -OR- IF (SCROLLBAR ON LEFT AND) MENUBUTTON IS ABOVE SCROLLBAR (LEFT OF TEXT): */
+		}
+		ActiveMenu->w = Menu_PixelWidth(ActiveMenu);
+		if ((x + ActiveMenu->w) >= TermWin.width)
+			x = (TermWin_TotalWidth() - ActiveMenu->w);
+		if (ActiveMenu->len > 0) {
+			/* find the height */
+			for (h = 0, item = ActiveMenu->head; item != NULL; item = item->next) {
+				if (isSeparator(item->name))
+					h += SEPARATOR_HEIGHT;
+				else
+					h += menu_height();
+			}
+			ActiveMenu->h = h + 2 * (SHADOW + MENU_MARGIN);
+		}
+	} else if (popupvisible)
+		/* JWT:REPLACE NEXT LINE W/THIS TO OPEN SUB-SUB MENUS HALF OVER PARENT: x += (ActiveMenu->parent->w / 2); */
+		/* x += ActiveMenu->parent->w; */
+		x += (ActiveMenu->parent->w / 2);
 
-    if ((x + ActiveMenu->w) >= TermWin.width)
-        x = (TermWin_TotalWidth() - ActiveMenu->w);
+	if (ActiveMenu->win == None)
+		ActiveMenu->win = XCreateSimpleWindow(Xdisplay, TermWin.vt,
+				x,
+				y,
+				ActiveMenu->w,
+				ActiveMenu->h,
+				0,
+				PixColors[Color_fg],
+				PixColors[Color_scroll]);
+				XDefineCursor(Xdisplay, ActiveMenu->win, menu_cursor);
+				XMapWindow(Xdisplay, ActiveMenu->win);
 
-    /* find the height */
-	for (h = 0, item = ActiveMenu->head; item != NULL; item = item->next) {
-	    if (isSeparator(item->name))
-		h += SEPARATOR_HEIGHT;
-	    else
-		h += menu_height();
+	Draw_Shadow(ActiveMenu->win,
+			topShadowGC, botShadowGC,
+			0, 0,
+	ActiveMenu->w, ActiveMenu->h);
+
+	/* determine the correct right-alignment */
+	for (xright = 0, item = ActiveMenu->head; item != NULL; item = item->next) {
+		if (item->len2 > xright)
+			xright = item->len2;
 	}
-	ActiveMenu->h = h + 2 * (SHADOW + MENU_MARGIN);
-    }
-    if (ActiveMenu->win == None) {
-	ActiveMenu->win = XCreateSimpleWindow(Xdisplay, TermWin.vt,
-					      x,
-					      ActiveMenu->y,
-					      ActiveMenu->w,
-					      ActiveMenu->h,
-					      0,
-					      PixColors[Color_fg],
-					      PixColors[Color_scroll]);
-	XMapWindow(Xdisplay, ActiveMenu->win);
-    }
-    Draw_Shadow(ActiveMenu->win,
-		topShadowGC, botShadowGC,
-		0, 0,
-		ActiveMenu->w, ActiveMenu->h);
-
-/* determine the correct right-alignment */
-    for (xright = 0, item = ActiveMenu->head; item != NULL; item = item->next) {
-        if (item->len2 > xright)
-            xright = item->len2;
-    }
 
 	const int       xoff = (SHADOW + Width2Pixel(HSPACE) / 2);
 	const int       yoff = (SHADOW + MENU_MARGIN);
-    for (y = 0, item = ActiveMenu->head;
-	 item != NULL;
-	 item = item->next) {
-	register int    h;
-	GC              gc = menubarGC;
+	for (y = 0, item = ActiveMenu->head;
+			item != NULL;
+			item = item->next) 
+	{
+		register int    h;
+		GC              gc = menubarGC;
 
-	if (isSeparator(item->name)) {
-	    Draw_Shadow(ActiveMenu->win,
-			topShadowGC, botShadowGC,
-			xoff,
-			yoff + y + SEPARATOR_HALFHEIGHT,
-			ActiveMenu->w - (2 * xoff),
+		if (isSeparator(item->name)) {
+			Draw_Shadow(ActiveMenu->win,
+					topShadowGC, botShadowGC,
+					xoff,
+					yoff + y + SEPARATOR_HALFHEIGHT,
+					ActiveMenu->w - (2 * xoff),
 			0);
-	    h = SEPARATOR_HEIGHT;
-	} else {
-	    char           *name = item->name;
-	    int             len = item->len;
+			h = SEPARATOR_HEIGHT;
+		} else {
+			char           *name = item->name;
+			int             len = item->len;
 
-	    if (item->entry.type == MenuLabel) {
-		gc = botShadowGC;
-	    } else if (item->entry.type == MenuSubMenu) {
-		int             x1, y1;
-		menuitem_t     *it;
-		menu_t         *menu = item->entry.submenu.menu;
+			if (item->entry.type == MenuLabel) {
+				/*xxx gc = botShadowGC; */
+			} else if (item->entry.type == MenuSubMenu) {
+				int             x1, y1;
+				menuitem_t     *it;
+				menu_t         *menu = item->entry.submenu.menu;
 
-		drawtriangle(ActiveMenu->w, y, +1);
+				if (menu->hidden)  /* JWT:SPECIAL "<"(Previous Menubar) BUTTON: */
+					continue;
 
-		name = menu->name;
-		len = menu->len;
+				if (menu->name[0] != '<')  /* JWT:SPECIAL "<"(Previous Menubar) BUTTON: */
+					drawtriangle(ActiveMenu->w, y, +1, 'r'); /* right-arrow on menu items w/submenus */
 
-		y1 = ActiveMenu->y + y;
+				name = menu->name;
+				len = menu->len;
 
-	    /* place sub-menu at midpoint of parent menu */
-		menu->w = Menu_PixelWidth(menu);
-		x1 = ActiveMenu->w / 2;
+				/* place sub-menu at midpoint of parent menu */
+				menu->w = Menu_PixelWidth(menu);
+				if (ActiveMenu->len > 0) {
+					x1 = ActiveMenu->w / 2;
+					y1 = ActiveMenu->y + y;
+					} else
+				x1 = y1 = 0;
 
-	    /* right-flush menu if it's too small */
-		if (x1 > menu->w)
-		    x1 += (x1 - menu->w);
-		x1 += x;
+				/* right-flush menu if it's too small */
+				if (x1 > menu->w)
+					x1 += (x1 - menu->w);
 
-	    /* find the height of this submenu */
-		for (h = 0, it = menu->head; it != NULL; it = it->next) {
-		    if (isSeparator(it->name))
-			h += SEPARATOR_HEIGHT;
-		    else
-			h += menu_height();
+				x1 += x;
+
+				/* find the height of this submenu */
+				for (h = 0, it = menu->head; it != NULL; it = it->next) {
+					if (isSeparator(it->name))
+							h += SEPARATOR_HEIGHT;
+					else
+					h += menu_height();
+				}
+				menu->h = h + 2 * (SHADOW + MENU_MARGIN);
+
+				/* ensure menu is in window limits */
+						if ((x1 + menu->w) >= TermWin.width)
+				x1 = (TermWin_TotalWidth() - menu->w);
+
+				if ((y1 + menu->h) >= TermWin.height)
+				y1 = (TermWin_TotalHeight() - menu->h);
+
+				if (ActiveMenu->len > 0) {
+					menu->x = (x1 < 0 ? 0 : x1);
+					menu->y = (y1 < 0 ? 0 : y1);
+				}
+			} else if (item->name2 && !strcmp(name, item->name2))
+				name = NULL;
+
+			if (len && name) {
+				if (len == 1 && name[0] == '<') {  /* JWT:SPECIAL "<"(Previous Menubar) BUTTON: */
+					drawtriangle(-1*xoff, 0, +1, 'l'); /* left-arrow on our special button. */
+					if (popupvisible)
+						XDrawString(Xdisplay,
+							ActiveMenu->win, gc,
+							xoff+20,
+							yoff + y + menu_height() - (2 * MENU_MARGIN),
+							"Prev.", 5);
+				} else
+					XDrawString(Xdisplay,
+						ActiveMenu->win, gc,
+						xoff,
+						yoff + y + menu_height() - (2 * MENU_MARGIN),
+						name, len);
+			}
+
+			len = item->len2;
+			name = item->name2;
+			if (len && name)
+					XDrawString(Xdisplay,
+					ActiveMenu->win, gc,
+					ActiveMenu->w - (xoff + Width2Pixel(xright)),
+					yoff + y + menu_height() - (2 * MENU_MARGIN),
+			name, len);
+
+			h = menu_height();
 		}
-		menu->h = h + 2 * (SHADOW + MENU_MARGIN);
-
-	    /* ensure menu is in window limits */
-		if ((x1 + menu->w) >= TermWin.width)
-		    x1 = (TermWin_TotalWidth() - menu->w);
-
-		if ((y1 + menu->h) >= TermWin.height)
-		    y1 = (TermWin_TotalHeight() - menu->h);
-
-		menu->x = (x1 < 0 ? 0 : x1);
-		menu->y = (y1 < 0 ? 0 : y1);
-	    } else if (item->name2 && !strcmp(name, item->name2))
-		name = NULL;
-
-	    if (len && name)
-		XDrawString(Xdisplay,
-			    ActiveMenu->win, gc,
-			    xoff,
-			    yoff + y + menu_height() - (2 * MENU_MARGIN),
-			    name, len);
-
-	    len = item->len2;
-	    name = item->name2;
-	    if (len && name)
-		XDrawString(Xdisplay,
-			    ActiveMenu->win, gc,
-			    ActiveMenu->w - (xoff + Width2Pixel(xright)),
-			    yoff + y + menu_height() - (2 * MENU_MARGIN),
-			    name, len);
-
-	    h = menu_height();
+		y += h;
 	}
-	y += h;
-    }
+	ActiveMenu->displayed = True;
+#endif
+}
+
+/* JWT:NEW FUNCTION TO POPUP/DOWN MENUBAR MENUS AS SINGLE POPUP MENU VIA Control+MouseButton-3: */
+/* PROTO */
+void
+menubar_menu_show(Bool popit, int x, int y)
+{
+#ifdef MENUBAR
+	if (CurrentBar == NULL || CurrentBar->popup == NULL
+			|| CurrentBar->popup->head == NULL || menubarGC == None)
+		return;  /* PUNT, NO MENUS OR NOT SET UP! */
+
+	prev_menu = NULL;
+	if (!popit) {
+		menu_reallyhide_all(NULL);
+		return;
+	}
+
+    menuitem_t     *item;
+    int h = 0;
+	for (item = CurrentBar->popup->head; item != NULL; item = item->next) {
+		if (item->entry.type == MenuSubMenu && item->entry.submenu.menu->hidden)
+			continue;    /* JWT:DON'T DRAW SPECIAL "<"(Previous Menubar) BUTTON WHEN HIDDEN: */
+
+		h += menu_height();
+	}
+	h += 2 * (SHADOW + MENU_MARGIN);
+	CurrentBar->popup->x = x;
+	if (y + h > Width2Pixel(TermWin.nrow*2))
+		y = Width2Pixel(TermWin.nrow*2) - h;
+
+	CurrentBar->popup->y = y;
+	CurrentBar->popup->w = 0;
+	CurrentBar->popup->h = h;
+	CurrentBar->popup->len = 0;
+	CurrentBar->popup->right_just = False;
+	ActiveMenu = CurrentBar->popup;
+	popupvisible = True;
+	menu_show();
 #endif
 }
 
@@ -1102,20 +1233,25 @@ menu_display(void (*update) (void))
 {
 #ifdef MENUBAR
     int rs_pix;
+    menu_t *am;
+
     if (ActiveMenu == NULL)
         return;
 
     if (ActiveMenu->win != None)
-	XDestroyWindow(Xdisplay, ActiveMenu->win);
+		XDestroyWindow(Xdisplay, ActiveMenu->win);
+
     ActiveMenu->win = None;
     ActiveMenu->item = NULL;
     rs_pix = (ActiveMenu->right_just && scrollbar_visible()) ? (2 * sb_shadow)+SB_WIDTH : 0;
 
-    if (ActiveMenu->parent == NULL)
+    if (!ActiveMenu->hidden && ActiveMenu->parent == NULL && ActiveMenu->len > 0)
         drawbox_menubar(ActiveMenu->x, ActiveMenu->len, +1, rs_pix);
 
+    am = ActiveMenu;
     ActiveMenu = ActiveMenu->parent;
     update();
+    am->displayed = False;
 #endif
 }
 
@@ -1134,6 +1270,40 @@ menu_hide(void)
 {
 #ifdef MENUBAR
     menu_display(menu_show);
+#endif
+}
+
+/* JWT:NEW FUNCTION ADDED TO REALLY HIDE ALL THE MULTIPLE POPUP MENUBARS (POPUP MENUS): */
+/* PROTO */
+void
+menu_reallyhide_all(menu_t * topmenu)
+{
+#ifdef MENUBAR
+	static int recursion_level = 0;
+
+	if (recursion_level == 0 && topmenu == NULL) {
+		topmenu = (CurrentBar == NULL) ? ActiveMenu : CurrentBar->popup;
+		popupvisible = False;
+	}
+	if (topmenu == NULL)
+		return;
+
+	menuitem_t *item;
+
+	recursion_level += 1;
+	for (item = topmenu->head; item != NULL; item = item->next) {
+		if (item->entry.type == MenuSubMenu && item->entry.submenu.menu != NULL
+				&& !item->entry.submenu.menu->hidden)
+			menu_reallyhide_all(item->entry.submenu.menu);
+	}
+	recursion_level -= 1;
+
+	ActiveMenu = topmenu;
+	if (topmenu->displayed) {
+		menu_hide();
+	}
+	if (recursion_level == 0 && topmenu == CurrentBar->popup)
+		prev_menu = NULL;
 #endif
 }
 
@@ -1157,11 +1327,24 @@ menu_clear(menu_t * menu)
 #endif
 }
 
+/* JWT:NEW FUNCTION TO TELL command.c WHETHER POPUP MENUS ARE CURRENTLY DISPLAYED: */
+/* PROTO */
+Bool
+popupmenu_visible(void)
+{
+#ifdef MENUBAR
+	return popupvisible;
+#else
+	return False;
+#endif
+}
+
 /* PROTO */
 void
 menubar_clear(void)
 {
 #ifdef MENUBAR
+	popupvisible = False;
     if (CurrentBar != NULL) {
 	menu_t         *menu = CurrentBar->tail;
 
@@ -1236,10 +1419,11 @@ menubar_push(const char *name)
 	if (bar == NULL)
 	    return 0;
 
-        MEMSET(bar, 0, sizeof (bar_t));
+    MEMSET(bar, 0, sizeof (bar_t));
     /* circular linked-list */
 	bar->next = bar->prev = bar;
 	bar->head = bar->tail = NULL;
+	bar->popup = NULL;
 	bar->title = NULL;
 	CurrentBar = bar;
 	Nbars++;
@@ -1248,10 +1432,9 @@ menubar_push(const char *name)
     } else {
     /* find if menu already exists */
 	bar = menubar_find(name);
-	if (bar != NULL) {
-	/* found it, use it */
-	    CurrentBar = bar;
-	} else {
+	if (bar != NULL)
+	    CurrentBar = bar;  /* found it, use it */
+	else {
 	/* create if needed, or reuse the existing empty menubar */
 	    if (CurrentBar->head != NULL) {
 	    /* need to malloc another one */
@@ -1266,6 +1449,7 @@ menubar_push(const char *name)
 		    ret = -1;
 		} else {
 		    bar->head = bar->tail = NULL;
+		    bar->popup = NULL;
 		    bar->title = NULL;
 
 		    bar->next = CurrentBar->next;
@@ -1325,6 +1509,15 @@ menubar_remove(const char *name)
 	}
     }
     while (CurrentBar && !strcmp(name, "*"));
+
+    if (Nbars == 1 && CurrentBar != NULL && CurrentBar->head != NULL) {
+    	   /* JWT:ONLY 1 MENUBAR LEFT, HIDE THE SPECIAL "Prev. Menubar" ("<") BUTTON!: */
+    	   char *found;
+    	   menu_t *prevhidden = CurrentBar->head;
+    	   found = menu_find_base(&prevhidden, "<");
+    	   if (found[0])
+			prevhidden->hidden = True;
+    }
 #endif
 }
 
@@ -1742,7 +1935,7 @@ menubar_dispatch(char *str)
 		    str++;
 		/* add/access menuBar */
 		    if (*str != '\0' && *str != '*')
-			menubar_push(str);
+		        menubar_push(str);
 		    break;
                 default:
                     if (CurrentBar == NULL) {
@@ -1883,12 +2076,26 @@ menubar_dispatch(char *str)
 		if (path[0] == '*') {
 		    menu_clear(BuildMenu);
 		    break;
-		} else if (len >= 2 && !strcmp((path + len - 2), "/*")) {
+		} else if (len >= 2 && !strcmp((path + len - 2), "/*"))
 		    path[len - 2] = '\0';
-		}
-		if (path[0] != '\0')
-		{
-		    BuildMenu = menu_add(BuildMenu, path, right_just);
+
+		if (path[0] != '\0') {
+		    if (CurrentBar->popup == NULL) {
+			    /* JWT:ADD SPECIAL "PREV. MENUBAR" BUTTON AS 1ST (LEFTMOST) BUTTON ON BAR: */
+			    if (CurrentBar == CurrentBar->prev)
+			        BuildMenu = menu_add(NULL, "<", False, True); /* JWT:IF 1ST MENUBAR, HIDE IT! */
+			    else {  /* JWT:ON SUBSEQUENT MENUBAR ADDED, ADD IT, BUT UNHIDE THE ONE ON THE PREVIOUS BAR!: */
+			    	   char *found;
+			    	   menu_t *prevhidden = CurrentBar->prev->head;
+			    	   BuildMenu = menu_add(NULL, "<", False, False);
+			    	   found = menu_find_base(&prevhidden, "<");
+			    	   if (found[0])
+			    	       prevhidden->hidden = False;
+			    }
+			    /*??? ACTIONLESS? menuitem_add(BuildMenu, "Prev MenuBar", "", "aterm_menus.sh [prev]\\r"); */
+			    BuildMenu = NULL;
+			}
+		    BuildMenu = menu_add(BuildMenu, path, right_just, False);
 		    right_just = False;
 		}
 	    }
@@ -2003,15 +2210,9 @@ draw_Arrows(int name, int state)
 
 /* PROTO */
 void
-menubar_expose(void)
+menubar_init(void)
 {
 #ifdef MENUBAR
-    menu_t         *menu;
-    int             x;
-
-    if (delay_menu_drawing || !menubar_visible())
-	return;
-
     if (menubarGC == None) {
     /* Create the graphics context */
 	XGCValues       gcvalue;
@@ -2041,6 +2242,20 @@ menubar_expose(void)
 				GCForeground,
 				&gcvalue);
     }
+#endif
+}
+
+/* PROTO */
+void
+menubar_expose(void)
+{
+#ifdef MENUBAR
+    menu_t         *menu;
+    int             x;
+
+    if (delay_menu_drawing || !menubar_visible())
+	return;
+
 /* make sure the font is correct */
     XSetFont(Xdisplay, menubarGC, TermWin.font->fid);
     XSetFont(Xdisplay, botShadowGC, TermWin.font->fid);
@@ -2067,7 +2282,9 @@ menubar_expose(void)
 	for (menu = CurrentBar->head; menu != NULL; menu = menu->next) {
 	    int             len = menu->len;
 
-	    if (menu->right_just) {
+		if (menu->hidden) /* JWT:"HIDDEN" FOR NOW MEANS THE SPECIAL LEFTMOST "PREV. MENUBAR" MENUBUTTON WHEN ONLY 1 MENUBAR: */
+	        continue;
+	    else if (menu->right_just) {
             x = xr;
             menu->x = x - (menu->len + HSPACE);
             xr = menu->x;
@@ -2086,12 +2303,19 @@ menubar_expose(void)
 		len = (TermWin.ncol - (menu->x + HSPACE));
 
 	    drawbox_menubar(menu->x, len, +1, rs_pix);
-
-	    XDrawString(Xdisplay,
-			menuBar.win, menubarGC,
-			(Width2Pixel(menu->x) + Width2Pixel(HSPACE) / 2) + rs_pix,
-			menuBar_height() - MENU_MARGIN,
-			menu->name, len);
+		if (menu->name != NULL && menu->name[0] == '<' && menu->name[1] == 0) { /* SPECIAL MENU NAME "<", DRAW LEFT ARROW!: */
+			Draw_Triangle(menuBar.win, botShadowGC, topShadowGC,
+				(Width2Pixel(menu->x) + Width2Pixel(HSPACE) / 2) + rs_pix,
+				/* menuBar_height() / 2 - MENU_MARGIN, Width2Pixel(1), 'l'); */
+				((menuBar_height() - MENU_MARGIN) / 2) - MENU_MARGIN,
+				Width2Pixel(1), 'l');
+		} else {
+			XDrawString(Xdisplay,
+				menuBar.win, menubarGC,
+				(Width2Pixel(menu->x) + Width2Pixel(HSPACE) / 2) + rs_pix,
+				menuBar_height() - MENU_MARGIN,
+				menu->name, len);
+		}
 
 	    if (x > TermWin.ncol)
 		break;
@@ -2103,7 +2327,9 @@ menubar_expose(void)
 
 /* add the menuBar title, if it exists and there's plenty of room */
     if (xl < ncol) {  /* HAVE ROOM FOR AT LEAST THE ARROWS: */
+#ifndef NO_MENUBAR_ARROWS
 		draw_Arrows(0, +1);
+#endif
 
 		str = (CurrentBar && CurrentBar->title ? CurrentBar->title : "%n-%v");
 		for (len = 0; str[0] && len < sizeof(title) - 1; str++) {
@@ -2160,8 +2386,8 @@ int
 menubar_mapping(int map)
 {
     int             change = 0;
-#ifdef MENUBAR
 
+#ifdef MENUBAR
     if (map && !menubar_visible()) {
 	menuBar.state = 1;
 	XMapWindow(Xdisplay, menuBar.win);
@@ -2186,141 +2412,229 @@ int
 menu_select(XButtonEvent * ev)
 {
 #ifdef MENUBAR
-    menuitem_t     *thisitem, *item = NULL;
-    int             this_y, y;
+	menuitem_t     *thisitem, *item = NULL;
+	int             this_y, y;
 
-    Window          unused_root, unused_child;
-    int             unused_root_x, unused_root_y;
-    unsigned int    unused_mask;
+	Window          unused_root, unused_child;
+	int             unused_root_x, unused_root_y;
+	unsigned int    unused_mask;
+	static menuitem_t  *prev_menu_shown;
 
-    if (ActiveMenu == NULL)
-	return 0;
+	if (ActiveMenu == NULL)
+		return 0;
 
-    XQueryPointer(Xdisplay, ActiveMenu->win,
-		  &unused_root, &unused_child,
-		  &unused_root_x, &unused_root_y,
-		  &(ev->x), &(ev->y),
-		  &unused_mask);
+	if (ActiveMenu->win != None)
+		XQueryPointer(Xdisplay, ActiveMenu->win,
+				&unused_root, &unused_child,
+				&unused_root_x, &unused_root_y,
+				&(ev->x), &(ev->y),
+				&unused_mask);
 
-    if (ActiveMenu->parent != NULL && (ev->x < 0 || ev->y < 0)) {
-	menu_hide();
-	return 1;
-    }
-/* determine the menu item corresponding to the Y index */
-    y = 0;
-    if (ev->x >= 0 &&
-	ev->x <= (ActiveMenu->w - SHADOW)) {
-	for (item = ActiveMenu->head; item != NULL; item = item->next) {
-	    int             h = menu_height();
+	if (ActiveMenu->parent != NULL && (ev->x < 0 || ev->y < 0)) { /* OUTSIDE OF ALL MENU WINDOWS */
+		if (ev->type == ButtonRelease)
+			menu_reallyhide_all(NULL);
 
-	    if (isSeparator(item->name)) {
-		h = SEPARATOR_HEIGHT;
-	    } else if (ev->y >= y && ev->y < (y + h)) {
-		break;
-	    }
-	    y += h;
-	}
-    }
-    if (item == NULL && ev->type == ButtonRelease) {
-	menu_hide_all();
-	return 0;
-    }
-    thisitem = item;
-    this_y = y;
+		if (ActiveMenu != NULL)
+			ActiveMenu = ActiveMenu->parent;
 
-/* erase the last item */
-    if (ActiveMenu->item != NULL) {
-	if (ActiveMenu->item != thisitem) {
-	    for (y = 0, item = ActiveMenu->head;
-		 item != NULL;
-		 item = item->next) {
-		int             h = menu_height();
-
-		if (isSeparator(item->name)) {
-		    h = SEPARATOR_HEIGHT;
-		} else if (item == ActiveMenu->item) {
-		/* erase old menuitem */
-		    drawbox_menuitem(y, 0);	/* No Shadow */
-		    if (item->entry.type == MenuSubMenu)
-			drawtriangle(ActiveMenu->w, y, +1);
-		    break;
-		}
-		y += h;
-	    }
-	} else {
-	    switch (ev->type) {
-	    case ButtonRelease:
-		switch (item->entry.type) {
-		case MenuLabel:
-		case MenuSubMenu:
-		    menu_hide_all();
-		    break;
-
-		case MenuAction:
-		case MenuTerminalAction:
-		    drawbox_menuitem(this_y, -1);
-		/*
-		 * use select for timing
-		 * remove menu before sending keys to the application
-		 */
-		    {
-#ifdef __CYGWIN32__
-			struct timeval tv;
-
-			tv.tv_sec = 0;
-			tv.tv_usec = MENU_DELAY_USEC;
-			select(0, NULL, NULL, NULL, &tv);
-#else
-			struct itimerval tv;
-
-			tv.it_value.tv_sec = 0;
-			tv.it_value.tv_usec = MENU_DELAY_USEC;
-			select(0, NULL, NULL, NULL, &tv.it_value);
-#endif
-		    }
-		    menu_hide_all();
-#ifndef DEBUG_MENU
-		    action_dispatch(&(item->entry.action));
-#else				/* DEBUG_MENU */
-		    printf("%s: %s\n", item->name, item->entry.action.str);
-#endif				/* DEBUG_MENU */
-		    break;
-		}
-		break;
-
-	    default:
-		if (item->entry.type == MenuSubMenu)
-		    goto DoMenu;
-		break;
-	    }
-	    return 0;
-	}
-    }
-  DoMenu:
-    ActiveMenu->item = thisitem;
-    y = this_y;
-    if (thisitem != NULL) {
-	item = ActiveMenu->item;
-	if (item->entry.type != MenuLabel)
-	    drawbox_menuitem(y, +1);
-	if (item->entry.type == MenuSubMenu) {
-	    int             x;
-
-	    drawtriangle(ActiveMenu->w, y, -1);
-
-	    x = ev->x + (ActiveMenu->parent ?
-			 ActiveMenu->x :
-			 Width2Pixel(ActiveMenu->x));
-
-	    if (x >= item->entry.submenu.menu->x) {
-		ActiveMenu = item->entry.submenu.menu;
-		menu_show();
 		return 1;
-	    }
 	}
-    }
+
+	/* determine the menu item corresponding to the Y index */
+	if (popupvisible) {  /* JWT:ADDED CODE FOR POPUP MENUS! (TOP HALF OF THIS IF): */
+		int h = menu_height();
+		y = 0;
+ 		if (ev->x >= 0) { /* NO SUBMENU WINDOW IS POPPED UP TO RIGHT: */
+			for (item = ActiveMenu->head; item != NULL; item = item->next) {
+				if (item->entry.type == MenuSubMenu && item->entry.submenu.menu != NULL
+						&& item->entry.submenu.menu->hidden)
+					continue;  /* JWT:SKIP HIDDEN MENUITEM IN POPUP MENU! */
+
+				h = menu_height();
+				if (isSeparator(item->name)) {
+					h = SEPARATOR_HEIGHT;
+				} else if (ev->y > y && ev->y < (y + h)) {  /* mouse w/n a menu item */
+					if (item->name != NULL && item != prev_menu)
+						prev_menu = item;
+
+					break;
+				}
+				y += h;
+			}
+ 		} else {          /* A SUBMENU WINDOW IS POPPED UP TO RIGHT (MOUSE COORDS NOW RELATIVE TO IT!: */
+			for (item = CurrentBar->popup->head; item != NULL; item = item->next) {
+				if (item->entry.type == MenuSubMenu && item->entry.submenu.menu != NULL
+						&& item->entry.submenu.menu->hidden)
+					continue;
+
+				if (ev->y > y && ev->y < (y + h)) {
+					if (item->name != NULL && item != prev_menu) {
+						menu_reallyhide_all(ActiveMenu);
+						prev_menu = item;
+					} else
+						return 0;
+
+ 					ActiveMenu = CurrentBar->popup;
+					break;
+				}
+				y += h;
+			}
+ 		}
+	} else {
+		y = 0;
+		if (ev->x >= 0 &&
+				ev->x <= (ActiveMenu->w - SHADOW)) {
+			for (item = ActiveMenu->head; item != NULL; item = item->next) {
+				int             h = menu_height();
+
+				if (isSeparator(item->name))
+					h = SEPARATOR_HEIGHT;
+				else if (ev->y >= y && ev->y < (y + h))
+					break;
+				y += h;
+			}
+		}
+	}
+	if (item == NULL && ev->type == ButtonRelease) {
+		if (ActiveMenu->name != NULL && ActiveMenu->name[0] == '<' && ActiveMenu->name[1] == 0)
+			/* JWT:SPECIAL "<"(Previous Menubar) BUTTON: SEND ACTION TO SWITCH TO PREV. MENUBAR: */
+			command_dispatch("\E]10;[prev]^G");
+		else 
+			menu_reallyhide_all(NULL);
+
+		return 0;
+	}
+	thisitem = item;
+	this_y = y;
+
+	/* erase the last item (I *THINK* THIS MEANS UNMASH THE MENUITEM BUTTON ITSELF): */
+	if (ActiveMenu->item != NULL) {  /* THE PREVIOUS ITEM IN ACTIVE THE MOUSE WAS ON? */
+		if (ActiveMenu->item != thisitem) {
+			prev_menu_shown = NULL;
+
+			for (y = 0, item = ActiveMenu->head;
+			item != NULL;
+			item = item->next)
+			{   /* LOOP LOOKING FOR THE "PREV" MENUITEM (TO BE UNPRESSED): */
+				int h = menu_height();
+
+				if (item->entry.type == MenuSubMenu && item->entry.submenu.menu != NULL
+						&& item->entry.submenu.menu->hidden)
+					continue;  /* JWT:SKIP HIDDEN MENUITEM IN POPUP MENU! */
+
+				if (isSeparator(item->name))
+					h = SEPARATOR_HEIGHT;
+				else if (item == ActiveMenu->item) {  /* FOUND IT (ActiveMenu->item == the PREV item!!: */
+					/* erase old menuitem (UNPRESS THE PREVIOUS MENUITEM BUTTON WE WERE ON)? */
+					drawbox_menuitem(y, 0);	/* No Shadow */
+					if (item->entry.type == MenuSubMenu
+							&& item->entry.submenu.menu->name[0] != '<') {
+						menu_t *am = ActiveMenu;
+						if (!popupvisible)
+							drawtriangle(ActiveMenu->w, y, +1, 'r'); /* JWT:SPECIAL "<"(Previous Menubar) BUTTON: */
+
+						menu_reallyhide_all(item->entry.submenu.menu);
+						ActiveMenu = am;
+					}
+					break;
+				}
+				y += h;
+			}
+		} else {  /* MOUSE STILL OVER THE "CURRENT"(SAME) MENUITEM: */
+			switch (ev->type) {
+				case ButtonRelease:
+				switch (item->entry.type) {
+					case MenuSubMenu:  /* WE JUST RELEASED ON A MENUITEM W/A SUBMENU: */
+					/* ActiveMenu = item->entry.submenu.menu; */ /* MOVE ACTIVEMENU DOWN TO IT??? (*NOT IN ORIGINAL*): */
+					if (item->name != NULL) {
+						if (item->name[0] == '<' && item->name[1] == 0) {
+							/* JWT:SPECIAL "<"(Previous Menubar) BUTTON: */
+							/* JWT:SPECIAL BUTTON *IS* A "MenuSubMenu", W/O A SUBMENU, INSTEAD ACT UPON IT NOW!: */
+							/* JWT:SOME DAY, PERHAPS WE CAN MAKE ORDINARY MENUBUTTONS "ACTIONABLE". */
+							command_dispatch("\E]10;[prev]^G");
+						} else if (item->entry.submenu.menu != NULL) {
+							ActiveMenu = item->entry.submenu.menu;
+							menu_reallyhide_all(NULL);
+							return 0;
+						}
+					}
+					case MenuLabel:
+					menu_reallyhide_all(NULL);
+					break;
+
+					case MenuAction:  /* MENUITEMS W/O SUBMENUS ARE ALREADY ACTIONABLE: */
+					case MenuTerminalAction:
+					drawbox_menuitem(this_y, -1);
+					/*
+							* use select for timing
+					* remove menu before sending keys to the application
+					*/
+					{
+#ifdef __CYGWIN32__
+						struct timeval tv;
+
+						tv.tv_sec = 0;
+						tv.tv_usec = MENU_DELAY_USEC;
+						select(0, NULL, NULL, NULL, &tv);
+#else
+						struct itimerval tv;
+
+						tv.it_value.tv_sec = 0;
+						tv.it_value.tv_usec = MENU_DELAY_USEC;
+						select(0, NULL, NULL, NULL, &tv.it_value);
 #endif
-    return 0;
+					}
+					menu_reallyhide_all(NULL);
+#ifndef DEBUG_MENU
+					action_dispatch(&(item->entry.action));
+#else				/* DEBUG_MENU */
+					printf("%s: %s\n", item->name, item->entry.action.str);
+#endif				/* DEBUG_MENU */
+					break;
+				}
+				break;
+
+				default:
+				if (item->entry.type == MenuSubMenu)
+						goto DoMenu;  /* WE ONLY HOVERED OVER ONE W/SUBMENUS (NOT RELEASED ON IT)?: */
+				break;
+			}
+			return 0;
+		}
+	}
+
+DoMenu:
+	ActiveMenu->item = thisitem;
+	y = this_y;
+	if (thisitem != NULL) {
+		item = ActiveMenu->item;
+		if (item->entry.type != MenuLabel)
+		drawbox_menuitem(y, +1);  /* PRESS IT DOWN? */
+		if (item->entry.type == MenuSubMenu) {
+			int x;
+
+			if (item->name != NULL && item->name[0] == '<' && item->name[1] == 0)
+				return 0;  /* JWT:SPECIAL "<"(Previous Menubar) BUTTON: */
+				/* (NO REAL SUBMENUS HERE, SO NO TRIANGLE ARROW)! */
+
+			drawtriangle(ActiveMenu->w, y, -1, 'r'); /* ALL MENUITEMS W/SUBMENUS GET A RIGHT-ARROW! */
+			x = ev->x + (ActiveMenu->parent ? ActiveMenu->x : Width2Pixel(ActiveMenu->x));
+			if (popupvisible || x >= item->entry.submenu.menu->x) {
+				/* JWT:POPUP MENUS ALWAYS POP UP THEIR SUBMENU, OTHERWISE ONLY IF HOVERING OVER RIGHT SIDE: */
+				ActiveMenu = item->entry.submenu.menu;  /* SET TO THE SUBMENU A/B TO POP UP. */
+				if (item != prev_menu_shown  /* JWT:NOTE:WE'RE ALSO "DIFFERENT" IF SUBMENU GOT HIDDEN!: */
+						|| (prev_menu_shown != NULL && !prev_menu_shown->entry.submenu.menu->displayed)) {
+					menu_show();  /* THIS DISPLAYS THE MENUITEM'S SUBMENU OUT TO THE RIGHT. */
+					prev_menu_shown = item;
+				}
+
+				/* JWT:NOTE:BELOW SEEMS NOW TO NEED TO BE ZERO!: */
+				return 0;  /* (*NOTE* RETURNS 1 HERE IN ORIGINAL!*) */
+			}
+		}
+	}
+#endif
+	return 0;
 }
 
 /* PROTO */
@@ -2328,88 +2642,100 @@ void
 menubar_select(XButtonEvent * ev)
 {
 #ifdef MENUBAR
-    menu_t         *menu = NULL;
+	menu_t         *menu = NULL;
 
-/* determine the pulldown menu corresponding to the X index */
-    if (ev->y >= 0 && ev->y <= menuBar_height() && CurrentBar != NULL) {
-	for (menu = CurrentBar->head; menu != NULL; menu = menu->next) {
-	    int             x = Width2Pixel(menu->x);
-	    int             w = Width2Pixel(menu->len + HSPACE);
-        x += (menu->right_just && scrollbar_visible()) ? sb_shadow+SB_WIDTH : 0;
+	/* determine the pulldown menu corresponding to the X index */
+	if (popupvisible) {
+		int             y = CurrentBar->popup->y;
+		if (ev->x >= CurrentBar->popup->x && ev->x <= CurrentBar->popup->x+CurrentBar->popup->w) {
+			if (ev->y > y && ev->y < y + CurrentBar->popup->h)
+				return;
+		}
+	} else {
+		if (ev->y >= 0 && ev->y <= menuBar_height() && CurrentBar != NULL) {
+			for (menu = CurrentBar->head; menu != NULL; menu = menu->next) {
+				int             x = Width2Pixel(menu->x);
+				int             w = Width2Pixel(menu->len + HSPACE);
+				if (menu->hidden)
+					continue;  /* JWT:SKIP HIDDEN MENUBUTTON - NOT SELECTABLE. */
 
-	    if ((ev->x >= x && ev->x < x + w))
+				x += (menu->right_just && scrollbar_visible()) ? sb_shadow+SB_WIDTH : 0;
+				if (ev->x >= x && ev->x < x + w)
+					break;
+			}
+		}
+	}
+	switch (ev->type) {
+		case ButtonRelease:
+		menu_reallyhide_all(NULL);
+		break;
+#ifndef NO_MENUBAR_ARROWS
+		case ButtonPress:
+		if (menu == NULL && Arrows_x && ev->x >= Arrows_x) {
+			for (int i = 0; i < NARROWS; i++) {
+				if (ev->x >= (Arrows_x + (Width2Pixel(4 * i + i)) / 4) &&
+						ev->x < (Arrows_x + (Width2Pixel(4 * i + i + 4)) / 4)) {
+					draw_Arrows(Arrows[i].name, -1);
+					/*
+							* use select for timing
+					*/
+					{
+#ifdef __CYGWIN32__
+						struct timeval tv;
+
+						tv.tv_sec = 0;
+						tv.tv_usec = MENU_DELAY_USEC;
+						select(0, NULL, NULL, NULL, &tv);
+#else
+						struct itimerval tv;
+
+						tv.it_value.tv_sec = 0;
+						tv.it_value.tv_usec = MENU_DELAY_USEC;
+						select(0, NULL, NULL, NULL, &tv.it_value);
+#endif
+					}
+					draw_Arrows(Arrows[i].name, +1);
+#ifdef DEBUG_MENUARROWS
+					printf("'%c': ", Arrows[i].name);
+
+					if (CurrentBar == NULL ||
+							(CurrentBar->arrows[i].type != MenuAction &&
+							CurrentBar->arrows[i].type != MenuTerminalAction))
+					{
+						if (Arrows[i].str[0])
+							printf("(default) \\033%s\n", &(Arrows[i].str[2]));
+					} else {
+						printf("%s\n", CurrentBar->arrows[i].str);
+					}
+#else					/* DEBUG_MENUARROWS */
+					if (CurrentBar == NULL || action_dispatch(&(CurrentBar->arrows[i]))) {
+						if (Arrows[i].str[0] != 0)
+							tt_write((Arrows[i].str + 1),
+						Arrows[i].str[0]);
+					}
+#endif					/* DEBUG_MENUARROWS */
+					return;
+				}
+			}
+		}
+#endif
+		/*drop */
+
+		default:
+		/*
+				* press menubar or move to a new entry
+		*/
+		if (menu != NULL && menu != ActiveMenu) {
+			menu_hide_all();	/* pop down old menu */
+			if (ActiveMenu == menu)
+				return;
+
+			ActiveMenu = menu;
+			menu_show();	/* pop up new menu */
+		}
 		break;
 	}
-    }
-    switch (ev->type) {
-    case ButtonRelease:
-	menu_hide_all();
-	break;
-
-    case ButtonPress:
-	if (menu == NULL && Arrows_x && ev->x >= Arrows_x) {
-#ifndef NO_MENUBAR_ARROWS
-	    for (int i = 0; i < NARROWS; i++) {
-		if (ev->x >= (Arrows_x + (Width2Pixel(4 * i + i)) / 4) &&
-		    ev->x < (Arrows_x + (Width2Pixel(4 * i + i + 4)) / 4)) {
-		    draw_Arrows(Arrows[i].name, -1);
-		/*
-		 * use select for timing
-		 */
-		    {
-#ifdef __CYGWIN32__
-			struct timeval tv;
-
-			tv.tv_sec = 0;
-			tv.tv_usec = MENU_DELAY_USEC;
-			select(0, NULL, NULL, NULL, &tv);
-#else
-			struct itimerval tv;
-
-			tv.it_value.tv_sec = 0;
-			tv.it_value.tv_usec = MENU_DELAY_USEC;
-			select(0, NULL, NULL, NULL, &tv.it_value);
-#endif
-		    }
-		    draw_Arrows(Arrows[i].name, +1);
-#ifdef DEBUG_MENUARROWS
-		    printf("'%c': ", Arrows[i].name);
-
-		    if (CurrentBar == NULL ||
-			(CurrentBar->arrows[i].type != MenuAction &&
-			 CurrentBar->arrows[i].type != MenuTerminalAction)) {
-			if (Arrows[i].str[0])
-			    printf("(default) \\033%s\n",
-				   &(Arrows[i].str[2]));
-		    } else {
-			printf("%s\n", CurrentBar->arrows[i].str);
-		    }
-#else				/* DEBUG_MENUARROWS */
-		    if (CurrentBar == NULL ||
-			action_dispatch(&(CurrentBar->arrows[i]))) {
-			if (Arrows[i].str[0] != 0)
-			    tt_write((Arrows[i].str + 1),
-				     Arrows[i].str[0]);
-		    }
-#endif				/* DEBUG_MENUARROWS */
-		    return;
-		}
-	    }
-#endif
-	}
-    /*drop */
-
-    default:
-    /*
-     * press menubar or move to a new entry
-     */
-	if (menu != NULL && menu != ActiveMenu) {
-	    menu_hide_all();	/* pop down old menu */
-	    ActiveMenu = menu;
-	    menu_show();	/* pop up new menu */
-	}
-	break;
-    }
+	return;
 #endif
 }
 
@@ -2431,6 +2757,8 @@ menubar_control(XButtonEvent * ev)
     case ButtonRelease:
 	if (ev->button == Button1)
 	    menu_select(ev);
+	if (popupvisible)
+	    menu_reallyhide_all(NULL);
 	break;
 
     case MotionNotify:
@@ -2439,9 +2767,12 @@ menubar_control(XButtonEvent * ev)
 				      (XEvent *) ev)) ;
 
 	if (ActiveMenu)
-	    while (menu_select(ev)) ;
+
+	    while (menu_select(ev)) ;  /* JWT:CONFUSING, BUT SEEMS TO WORK?! */
+
 	else
 	    ev->y = -1;
+
 	if (ev->y < 0) {
 	    Window          unused_root, unused_child;
 	    int             unused_root_x, unused_root_y;
@@ -2488,6 +2819,7 @@ create_menuBar(Cursor cursor)
 		 (ExposureMask | ButtonPressMask | ButtonReleaseMask |
 		  Button1MotionMask));
 
+    menu_cursor = cursor;  /* JWT:GRAB THE CURSOR FOR OUR USE. */
 #endif
 }
 

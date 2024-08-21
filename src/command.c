@@ -2809,6 +2809,13 @@ process_x_event(XEvent * ev)
 			MEvent.clicks = 0;
 		    switch (ev->xbutton.button) {
 		    case Button1:
+#ifdef MENUBAR
+			/* JWT:Control+Button1 NOW INVOKES POPUP MENUBAR MENUS (LIKE xterm, et. al.): */
+			if (ev->xbutton.state & ControlMask) {
+				menubar_menu_show(True, ev->xbutton.x, ev->xbutton.y);
+				break;
+			}
+#endif
 			if (MEvent.button == Button1
 			&& (ev->xbutton.time - MEvent.time < MULTICLICK_TIME))
 			    MEvent.clicks++;
@@ -2935,7 +2942,7 @@ process_x_event(XEvent * ev)
 	    }
 	    return;
 	}
-	if (isMenuBarWindow(ev->xany.window)) {
+	if (isMenuBarWindow(ev->xany.window) || popupmenu_visible()) {
 	    menubar_control(&(ev->xbutton));
 	    return;
 	}
@@ -2990,6 +2997,9 @@ process_x_event(XEvent * ev)
 
 		switch (ev->xbutton.button) {
 		case Button1:
+#ifdef MENUBAR
+		    menubar_menu_show(False, 0, 0);
+#endif
 			if (!bypass_keystate) {  /* JWT:DON'T DO IF MODIFIED (IE. Shift+Button3) */
 				selection_make(ev->xbutton.time, ev->xbutton.state);
 				return;  /* JWT:SO WE DON'T CLEAR SELECTION LATER BELOW! */
@@ -3013,13 +3023,14 @@ process_x_event(XEvent * ev)
 #endif
 		}
 	    }
-	} else if (isMenuBarWindow(ev->xany.window)) {
+	}
+	if (isMenuBarWindow(ev->xany.window) || popupmenu_visible()) {
 	    menubar_control(&(ev->xbutton));
 	}
 	break;
 
     case MotionNotify:
-	if (isMenuBarWindow(ev->xany.window)) {
+	if (isMenuBarWindow(ev->xany.window)|| popupmenu_visible()) {
 	    menubar_control(&(ev->xbutton));
 	    break;
 	}
@@ -3911,7 +3922,9 @@ tt_write(const unsigned char *d, int len)
 				return;
 #ifdef MENUBAR
 			} else if (d[1] == 77) {                /* "^^M" (Shift-Ctrl-M):  Hide the menubar(s): */
-				menubar_mapping(0);
+				int toggled = menubar_mapping(0);
+				if (toggled == 0)
+					menubar_mapping(1);
 				return;
 #endif
 			} else if (d[1] == 83) {                /* "^^S" (Shift-Ctrl-S):  Toggle the scrollbar: */

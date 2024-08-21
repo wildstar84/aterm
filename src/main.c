@@ -2383,6 +2383,7 @@ main(int argc, char *argv[])
 /* we can now add menuBar */
 #ifdef MENUBAR
     { /* ONLYIF MENUBAR */
+	menubar_init();  /* JWT:INITIALIZE HERE IN CASE USER USES POPUP-MENUS W/O MENUBAR. */
 	if (delay_menu_drawing) {
 	    delay_menu_drawing = 0;
 	    menubar_mapping((Options & Opt_menuBar) ? 1 : 0);

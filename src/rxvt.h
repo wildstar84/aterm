@@ -425,11 +425,14 @@ typedef struct menu_t {
     short           x;		/* x location [pixels] (chars if parent == NULL) */
     short           y;		/* y location [pixels] */
     short           w, h;	/* window width, height [pixels] */
-    Bool            right_just;
+    Bool            right_just; /*JWT:True for menubar buttons to be packed on right side of bar */
+    Bool            hidden; /* JWT:True for special "Previous Menubar" menubutton if only 1 menubar */
+    Bool            displayed; /* JWT:True if menu's window is currently popped down (displayed) */
 } menu_t;
 
 typedef struct bar_t {
     menu_t         *head, *tail;	/* double-linked list of menus */
+    menu_t         *popup; /* JWT:popupable menu of all the menubar menus */
     char           *title;	/* title to put in the empty menuBar */
 #if (MENUBAR_MAX > 1)
 # define MAXNAME 16
