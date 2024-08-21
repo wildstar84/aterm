@@ -1,3 +1,45 @@
+2024-08-21  JWT:
+
+	* Added support for a "popup" version of custom menubar menus:  If user 
+	  has configured one or more menubars (sets of menus), they can now also 
+	  be accessed via a popup version that pops up at the mouse-cursor 
+	  location when pressing mouse-button-1 while holding down the control 
+	  key, similar to how menus are accessed in xterm, et. al.  This is 
+	  accessible regardless of whether one has the menubar displayed or not.  
+	  One handy use for this is having an entry to toggle the menubar back on 
+	  if it is hidden.
+
+	* When multiple menubars are defined, only the current (last added) one 
+	  is visible when the menubar is toggled on or the popup version is 
+	  invoked.  They are linked together in a circular link structure and 
+	  can be switched to (made the current one) via an escape sequence or 
+	  by the "[prev]" or "[next]" commands passed to aterm_menu.sh on the 
+	  command line.  To make this much simpler, I've added a small menubar 
+	  button in the left corner of the current menubar with a left-pointing 
+	  arrow (triangle) that will instantly change the menubar to the next 
+	  menubar defined.  This arrow is only displayed if more than one 
+	  menubar is currently defined.  It also appears as the top entry in 
+	  the popup version of the menus labeled "< Prev.".
+
+	* Fixed text-cursor artifacts appearing when scrolling an unfocused aterm 
+	  window using a scrollwheel mouse.  When unfocused, aterm apparently uses 
+	  a different method of drawing the text-cursor, in this case, using a 
+	  simple XDrawRectangle to draw a hollow box where the cursor should be.  
+	  The result with that method was occasional extra box artifacts that 
+	  did not happen when the regular text cursor is being used when the 
+	  window is focused.  This was probably due to this code predating the 
+	  wide adoption of scroll-wheel capable mice, which enabled scrolling 
+	  windows when they do not have the focus, unlike when scrolling with the 
+	  traditional scrollbars and buttons (which first focus the window).
+
+	* Fixed ocassional "dangling popup menu box windows" left onscreen and 
+	  inaccessable when performing certain traversal sequences over submenus 
+	  with the mouse.
+
+	* Updated the manpage to add our newly-added options and resource names.
+
+	* More small general code cleanups / optimizations.
+
 2024-08-10  JWT:
 
 	* Update from their original vsn# 1.00.02 to 2.00.00, as this fork is a

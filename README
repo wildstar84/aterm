@@ -24,8 +24,8 @@ and had the nice Copy/Paste options right there in the menu!  I've always
 missed this since moving over to Linux, as xterm, aterm, and most other 
 terminals either lack this capability entirely, or else only offer a standard, 
 non-customizable menubar (like lxterminal).  I can't speak for the massively 
-heavy Gnome-shell or whatever KDE's terminal is as I've never condidered 
-using those.
+heavy Gnome-shell or whatever KDE's terminal is these days as I've never 
+considered installing those.
 
 I snagged aterm's source when AfterStep switched to rxvt, and decided to add a 
 few standard key sequences for such things a pasting PRIMARY vs CLIPBOARD, etc. 
@@ -34,8 +34,8 @@ I had never seen an aterm with a menubar but searched diligently for how to
 make them work and discovered that it was designed to accept custom menu files, 
 but almost no documentation on how to get one actually displayed and working.  
 Turns out that it required setting a non-documented compiler directive and 
-recompiling to use that code!  I also couldn't find an action string 
-sequence that I could have a menu item send to do Copy or Paste, so I started 
+recompiling to use that code!  I also couldn't find an action escape sequence 
+string that I could have a menu item send to do Copy or Paste, so I started 
 working on it (and added a bunch more settings to my new menu and made it look 
 alot like the old "dtterm" that I fondly remembered)!  I would have first filed 
 a change request with aterm, but the project lead (who also was lead developer 
