@@ -2618,14 +2618,25 @@ scr_refresh(int type)
 #endif
 	    }
 	} else {
-	    currow = screen.cur.row - TermWin.view_start;
+	    /* JWT:FIX CURSOR ARTIFACTS WHEN SCROLLING BACKWARDS W/SCROLLWHEEL UNFOCUSED: */
+	    /* JWT:20240820:CHGD. TO NEXT LINE: currow = screen.cur.row - TermWin.view_start; */
+	    currow = screen.cur.row;
 	    col = screen.cur.col + morecur;
 	    wbyte = morecur ? 1 : 0;
 	    if (currow >= 0 && currow < TermWin.nrow) {
 #ifndef NO_CURSORCOLOR
 		gcmask = 0;
-		if (Xdepth > 2 && rs_color[Color_cursor]) {
-		    gcvalue.foreground = PixColors[Color_cursor];
+	    /* JWT:NOTE:IN ORDER TO REMOVE THE RECTANGLE BOX CURSOR (WHEN UNFOCUSED), WHICH
+	       DOES NOT GET ERASED ON LINES WITH FEWER CHARACTERS THAN THE LINE THE CURSOR IS
+	       ON (OPTIMIZATION, I GUESS), WE HAVE TO ALWAYS "ERASE" IT BY DRAWING A RECTANGLE
+	       WITH THE BACKGROUND COLOR AS IT'S FOREGROUND WHEN SCROLLING BACK PUSHES THE
+	       CURSOR OFF THE SCREEN! (THE FOCUSED CURSOR IS DRAWN BY A COMPLETELY DIFFERENT
+	       METHOD THAT DOES NOT SUFFER THIS ARTIFACT SIDE-EFFECT!):
+	    */
+		if (Xdepth > 2 && (TermWin.view_start > 0 || rs_color[Color_cursor])) {
+		    gcvalue.foreground = (TermWin.view_start > 0)
+		            ? gcvalue.background   /* JWT:DRAW AN INVISIBLE CURSOR (FG==BG) TO HIDE! */
+		            : PixColors[Color_cursor];
 		    gcmask = GCForeground;
 		    XChangeGC(Xdisplay, TermWin.gc, gcmask, &gcvalue);
 		    gcvalue.foreground = PixColors[Color_fg];
