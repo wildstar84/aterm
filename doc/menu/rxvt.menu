@@ -3,12 +3,12 @@
 # show up depending on the machine you are rlogin/telnet connecting to
 
 menu="$0"	# or any convenient database
-exe="../../src/rxvt"	# default program to execute
+exe="../../src/aterm"	# default program to execute
 # exe="/usr/local/bin/rxvt-2.21"	# default program to execute
 
 if test $# -gt 0; then
-    # if first argument contains "rxvt" use that instead
-    case $1 in *rxvt*) exe="$1" shift;; esac
+    # if first argument contains "aterm" use that instead
+    case $1 in *aterm*) exe="$1" shift;; esac
 fi
 
 while [ $# -gt 0 ]
