@@ -1,3 +1,12 @@
+2026-03-03  JWT:
+
+	* Fix failure to set selection anchor point to where mouse-button 1 
+	  was clicked the first time after startup or screen reset (was 
+	  wrongly using 0,0 - the upper-left corner as starting point).
+
+	* Enable quadruple-click to now select all text currently visible in the 
+	  terminal window.
+
 2024-08-21  JWT:
 
 	* Added support for a "popup" version of custom menubar menus:  If user 

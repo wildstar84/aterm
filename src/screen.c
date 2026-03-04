@@ -3087,7 +3087,7 @@ selection_make(Time tm, unsigned int key_state)
     }
     selection.op = SELECTION_DONE;
 
-    if (selection.clicks == 4)
+    if (selection.clicks == 5)
         return;			/* nothing selected, go away */
 
     i = (selection.end.row - selection.beg.row + 1) * (TermWin.bcol + 1) + 1;
@@ -3181,7 +3181,7 @@ selection_to_clipboard()
 
 /* ------------------------------------------------------------------------- */
 /*
- * Mark or select text based upon number of clicks: 1, 2, or 3
+ * Mark or select text based upon number of clicks: 1, 2, 3, or 4
  * EXT: button 1 press
  */
 /* PROTO */
@@ -3194,15 +3194,20 @@ selection_click(int clicks, int x, int y)
 
     D_SELECT((stderr, "selection_click(%d, %d, %d)", clicks, x, y));
 
-    clicks = ((clicks - 1) % 3) + 1;
+    clicks = ((clicks - 1) % 4) + 1;
     selection.clicks = clicks;	/* save clicks so extend will work */
+
+	/* JWT:NEXT 2 ADDED 20260303 TO SET ANCHOR ON 1ST CLICK: */
+    if (selection.op == SELECTION_CLEAR && clicks == 1)
+		selection.op = SELECTION_INIT;
+
 #ifdef THAI
     selection_start_colrow(ThaiPixel2Col(x,y), Pixel2Row(y));
 #else
     selection_start_colrow(Pixel2Col(x), Pixel2Row(y));
 #endif
-    if (clicks == 2 || clicks == 3)
-	selection_extend_colrow(selection.mark.col,
+    if (clicks > 1)
+		selection_extend_colrow(selection.mark.col,
 				selection.mark.row + TermWin.view_start,
 				0,	/* button 3     */
 				1,	/* button press */
@@ -3225,8 +3230,8 @@ selection_start_colrow(int col, int row)
     MIN_IT(selection.mark.col, TermWin.bcol - 1);
 
     if (selection.op) {		/* clear the old selection */
-	selection.beg.row = selection.end.row = selection.mark.row;
-	selection.beg.col = selection.end.col = selection.mark.col;
+		selection.beg.row = selection.end.row = selection.mark.row;
+		selection.beg.col = selection.end.col = selection.mark.col;
     }
     selection.op = SELECTION_INIT;
     selection.screen = current_screen;
@@ -3357,19 +3362,19 @@ selection_extend(int x, int y, int flag)
  * select nothing.  Otherwise, if we're to the right of the mark, you have to
  * be _past_ a character for it to be selected.
  */
-    if (((selection.clicks % 3) == 1) && !flag
+    if (((selection.clicks % 4) == 1) && !flag
 	&& (col == selection.mark.col
 	    && (row == selection.mark.row + TermWin.view_start))) {
     /* select nothing */
 	selection.beg.row = selection.end.row = 0;
 	selection.beg.col = selection.end.col = 0;
-	selection.clicks = 4;
-	D_SELECT((stderr, "selection_extend() selection.clicks = 4"));
+	selection.clicks = 5;
+	D_SELECT((stderr, "selection_extend() selection.clicks = 5"));
 	return;
     }
 #endif
-    if (selection.clicks == 4)
-	selection.clicks = 1;
+    if (selection.clicks == 5)
+		selection.clicks = 1;
     selection_extend_colrow(col, row,
 			    !!flag,	/* ? button 3      */
 			    flag == 1 ? 1 : 0,	/* ? button press  */
@@ -3459,6 +3464,12 @@ selection_extend_colrow(int col, int row, int button3, int buttonpress, int clic
 	    selection.beg.col = 0;
 	    selection.end.col = TermWin.bcol;
 	    hate_those_clicks = 1;
+	} else if (selection.clicks == 4) { /* JWT:ADDED 20260303 TO SELECT FULL VISIBLE SCREEN: */
+		selection.beg.row = 0 - TermWin.view_start;
+		selection.end.row = selection.beg.row + screen.cur.row;
+	    selection.beg.col = 0;
+	    selection.end.col = TermWin.bcol;
+	    hate_those_clicks = 1;
 	}
     }
 #else				/* ! OLD_SELECTION */
@@ -3479,6 +3490,8 @@ selection_extend_colrow(int col, int row, int button3, int buttonpress, int clic
     /*
      * first determine which edge of the selection we are closest to
      */
+	if (selection.clicks == 4)  /* JWT:IF SELECT-SCREEN, JUST EXTEND BY LINE: */
+		selection.clicks = 3;
 	if (ROWCOL_IS_BEFORE(pos, selection.beg)
 	    || (!ROWCOL_IS_AFTER(pos, selection.end)
 		&& (((pos.col - selection.beg.col)
@@ -3548,24 +3561,29 @@ selection_extend_colrow(int col, int row, int button3, int buttonpress, int clic
 	}
 # endif				/* MULTICHAR_SET */
     } else if (selection.clicks == 2) {
-	if (ROWCOL_IS_AFTER(selection.end, selection.beg))
-	    selection.end.col--;
-	selection_delimit_word(UP, &(selection.beg), &(selection.beg));
-	selection_delimit_word(DN, &(selection.end), &(selection.end));
+		if (ROWCOL_IS_AFTER(selection.end, selection.beg))
+		    selection.end.col--;
+		selection_delimit_word(UP, &(selection.beg), &(selection.beg));
+		selection_delimit_word(DN, &(selection.end), &(selection.end));
     } else if (selection.clicks == 3) {
-	if (ROWCOL_IS_AFTER(selection.mark, selection.beg))
-	    selection.mark.col++;
-	selection.beg.col = 0;
-	selection.end.col = TermWin.bcol;
+		if (ROWCOL_IS_AFTER(selection.mark, selection.beg))
+			selection.mark.col++;
+		selection.beg.col = 0;
+		selection.end.col = TermWin.bcol;
+    } else if (selection.clicks == 4) { /* JWT:ADDED 20260303 TO SELECT FULL VISIBLE SCREEN: */
+		selection.beg.row = 0 - TermWin.view_start;
+		selection.end.row = selection.beg.row + screen.cur.row;
+		selection.beg.col = 0;
+		selection.end.col = TermWin.bcol;
     }
     if (button3 && buttonpress) {	/* mark may need to be changed */
-	if (closeto == LEFT) {
-	    selection.mark.row = selection.end.row;
-	    selection.mark.col = selection.end.col - (selection.clicks == 2);
-	} else {
-	    selection.mark.row = selection.beg.row;
-	    selection.mark.col = selection.beg.col;
-	}
+		if (closeto == LEFT) {
+		    selection.mark.row = selection.end.row;
+			selection.mark.col = selection.end.col - (selection.clicks == 2);
+		} else {
+			selection.mark.row = selection.beg.row;
+			selection.mark.col = selection.beg.col;
+		}
     }
 #endif				/* ! OLD_SELECTION */
     D_SELECT((stderr, "selection_extend_colrow() EXIT b:(r:%d,c:%d) m:(r:%d,c:%d), e:(r:%d,c:%d)", selection.beg.row, selection.beg.col, selection.mark.row, selection.mark.col, selection.end.row, selection.end.col));
@@ -3580,7 +3598,7 @@ selection_extend_colrow(int col, int row, int button3, int buttonpress, int clic
 void
 selection_rotate(int x, int y)
 {
-    selection.clicks = selection.clicks % 3 + 1;
+    selection.clicks = selection.clicks % 4 + 1;
 #ifdef THAI
     selection_extend_colrow(ThaiPixel2Col(x,y), Pixel2Row(y), 1, 0, 1);
 #else
