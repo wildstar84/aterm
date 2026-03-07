@@ -112,7 +112,8 @@ static char    *v_bufend;	/* end of physical buffer */
 #define UPDATE_BACKGROUND_TIMEOUT_USEC	350000  /* third of a second delay */  
 static time_t 		last_update_background_request_sec = 0 ;  	
 static time_t 		last_update_background_request_usec = 0 ;  	 
-static Bool first_background_update = True ;	 
+static Bool first_background_update = True ;
+static Bool kbselection_on = False;  /* JWT:ADDED 20260305 FOR KEYBOARD-SELECTION. */
 
 
 static void
@@ -1681,8 +1682,20 @@ lookup_key(XEvent * ev)
 	}
 	else if (meta) {  /* JWT:HANDLE OUR Alt-key SEQUENCES: */
 	    switch (keysym) {
-		case XK_v:  /* JWT:MAKE Alt+v PASTE PRIMARY: */
+	    /* JWT:MAKE Alt+v PASTE PRIMARY: */
+		case XK_v:  /* TO GET NORMAL Alt-v CHAR (\xf6), USE [COMPOSE]"o */
 			selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, XA_PRIMARY);
+			return;
+		/* JWT:ADDED 20260305 - MAKE Alt+[,] TURN ON,OFF KEYBOARD SELECTION: */
+		case XK_bracketleft:  /* TO GET NORMAL Alt-[ CHAR (\xdb), USE [COMPOSE]^U */
+			if (! kbselection_on)
+				scr_kbselection(ev->xkey.time, False);
+			kbselection_on = True;
+			return;
+		case XK_bracketright:  /* TO GET NORMAL Alt-] CHAR (\xdd), USE [COMPOSE]'Y */
+			if (kbselection_on)
+				scr_kbselection(ev->xkey.time, True);
+			kbselection_on = False;
 			return;
 		}
 	}
@@ -2059,9 +2072,9 @@ lookup_key(XEvent * ev)
 	&& (meta_char == 033)
 #endif
 	) {
-	const unsigned char ch = '\033';
+		const unsigned char ch = '\033';
 
-	tt_write(&ch, 1);
+		tt_write(&ch, 1);
     }
 #ifdef DEBUG_CMD
     if (debug_key) {		/* Display keyboard buffer contents */
@@ -3002,6 +3015,7 @@ process_x_event(XEvent * ev)
 #endif
 			if (!bypass_keystate) {  /* JWT:DON'T DO IF MODIFIED (IE. Shift+Button3) */
 				selection_make(ev->xbutton.time, ev->xbutton.state);
+				kbselection_on = False;
 				return;  /* JWT:SO WE DON'T CLEAR SELECTION LATER BELOW! */
 			}
 		case Button3:
@@ -3252,6 +3266,7 @@ process_escape_seq(void)
 	break;
     case 'c':
 	scr_poweron();
+	kbselection_on = False;
 	break;
     case 'n':
 	scr_charset_choose(2);

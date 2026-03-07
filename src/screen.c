@@ -1276,6 +1276,19 @@ scr_erase_line(int mode)
 	       rstyle & ~RS_Uline);
 }
 
+/* JWT:ADDED 20260305 TO HANDLE KEYBOARD-SELECTION: */
+void
+scr_kbselection (Time tm, Bool mode)
+{
+	if (mode) {
+		selection_extend_colrow(screen.cur.col, screen.cur.row+TermWin.view_start, 0,0,0);
+		selection_make(tm, 0);
+	} else {
+		selection_clear(XA_PRIMARY);
+		selection_start_colrow(screen.cur.col, screen.cur.row);
+	}
+}
+
 /* ------------------------------------------------------------------------- */
 /*
  * Erase part of whole of the screen
@@ -3055,7 +3068,9 @@ selection_clear(Atom selbuffer)
 
     selection.text = NULL;
     selection.len = 0;
-    CLEAR_SELECTION;
+    /* JWT:CLEAR_SELECTION_SAVE_MARK: */
+    selection.beg.row = selection.end.row	= selection.mark.row;
+	selection.beg.col = selection.end.col = selection.mark.col;
 }
 
 /* ------------------------------------------------------------------------- */
@@ -3077,7 +3092,9 @@ selection_make(Time tm, unsigned int key_state)
     case SELECTION_CONT:
 	break;
     case SELECTION_INIT:
-/*	JWT:REMOVED SO LBUTTON1 CAN SET SELECTION ANCHOR!: CLEAR_SELECTION; */
+/*	JWT:REPLACED BY NEXT 2 SO LBUTTON1 CAN SET SELECTION ANCHOR!: CLEAR_SELECTION; */
+	if (selection.clicks==1)
+		selection_clear(XA_PRIMARY);;
     /* FALLTHROUGH */
     case SELECTION_BEGIN:
 	selection.op = SELECTION_DONE;
@@ -3156,8 +3173,8 @@ selection_make(Time tm, unsigned int key_state)
     if (XGetSelectionOwner(Xdisplay, XA_PRIMARY) != TermWin.vt)
         print_error("can't get primary selection");
 
-/* JWT:???:    XChangeProperty(Xdisplay, Xroot, XA_CUT_BUFFER0, XA_STRING, 8,
-		    PropModeReplace, selection.text, selection.len); */
+    XChangeProperty(Xdisplay, Xroot, XA_CUT_BUFFER0, XA_STRING, 8,
+		    PropModeReplace, selection.text, selection.len);
     D_SELECT((stderr, "selection_make(): selection.len=%d", selection.len));
 }
 
@@ -3192,14 +3209,15 @@ selection_click(int clicks, int x, int y)
  *   row_col_t             ext_beg, ext_end;
  */
 
-    D_SELECT((stderr, "selection_click(%d, %d, %d)", clicks, x, y));
+    D_SELECT((stderr, "selection_click(click=%d, x=%d, y=%d): op=%d", clicks, x, y, selection.op));
 
     clicks = ((clicks - 1) % 4) + 1;
     selection.clicks = clicks;	/* save clicks so extend will work */
 
-	/* JWT:NEXT 2 ADDED 20260303 TO SET ANCHOR ON 1ST CLICK: */
-    if (selection.op == SELECTION_CLEAR && clicks == 1)
-		selection.op = SELECTION_INIT;
+	/* JWT:NEXT 3 ADDED 20260306 TO CLEAR SELECTION & SET ANCHOR ON 1ST CLICK: */
+    /* JWT:CLEAR_SELECTION_SAVE_MARK: */
+    selection.beg.row = selection.end.row	= selection.mark.row;
+	selection.beg.col = selection.end.col = selection.mark.col;
 
 #ifdef THAI
     selection_start_colrow(ThaiPixel2Col(x,y), Pixel2Row(y));
@@ -3230,7 +3248,8 @@ selection_start_colrow(int col, int row)
     MIN_IT(selection.mark.col, TermWin.bcol - 1);
 
     if (selection.op) {		/* clear the old selection */
-		selection.beg.row = selection.end.row = selection.mark.row;
+		/* JWT:CLEAR_SELECTION_SAVE_MARK: */
+	    selection.beg.row = selection.end.row	= selection.mark.row;
 		selection.beg.col = selection.end.col = selection.mark.col;
     }
     selection.op = SELECTION_INIT;
@@ -3398,18 +3417,20 @@ selection_extend_colrow(int col, int row, int button3, int buttonpress, int clic
     int             c, r;
 #endif
 
-    D_SELECT((stderr, "selection_extend_colrow(c:%d, r:%d, %d, %d) clicks:%d", col, row, button3, buttonpress, selection.clicks));
+    D_SELECT((stderr, "selection_extend_colrow(c:%d, r:%d, %d, %d) op=%d, clicks:%d", col, row, button3, buttonpress, selection.op, selection.clicks));
     D_SELECT((stderr, "selection_extend_colrow() ENT  b:(r:%d,c:%d) m:(r:%d,c:%d), e:(r:%d,c:%d)", selection.beg.row, selection.beg.col, selection.mark.row, selection.mark.col, selection.end.row, selection.end.col));
 
     switch (selection.op) {
     case SELECTION_INIT:
-	CLEAR_SELECTION;
+    /* JWT:CLEAR_SELECTION_SAVE_MARK: */
+    selection.beg.row = selection.end.row	= selection.mark.row;
+	selection.beg.col = selection.end.col = selection.mark.col;
 	selection.op = SELECTION_BEGIN;
     /* FALLTHROUGH */
     case SELECTION_BEGIN:
 	if (row != selection.mark.row || col != selection.mark.col
-	    || (!button3 && buttonpress))
-	    selection.op = SELECTION_CONT;
+			|| (!button3 && buttonpress))
+		selection.op = SELECTION_CONT;
 	break;
     case SELECTION_DONE:
 	selection.op = SELECTION_CONT;
@@ -3440,9 +3461,9 @@ selection_extend_colrow(int col, int row, int button3, int buttonpress, int clic
 
 	if (selection.clicks == 1 || button3) {
 	    if (hate_those_clicks) {
-		selection.mark.row = selection.beg.row;
-		selection.mark.col = selection.beg.col;
-		hate_those_clicks = 0;
+			selection.mark.row = selection.beg.row;
+			selection.mark.col = selection.beg.col;
+			hate_those_clicks = 0;
 	    }
 	    if (ROWCOL_IS_BEFORE(pos, selection.beg)) {
 		selection.end.row = selection.beg.row;
