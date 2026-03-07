@@ -1,3 +1,12 @@
+2026-03-07  JWT:
+
+	* Change (improve) scrolling defaults in features.h (users are free to 
+	  change as better suits them).
+
+	* Fix failure to clear (PRIMARY) selection when cleared on the screen via 
+	  Alt-[ or Mouse-button press on text area if user does not then select 
+	  something else.
+
 2026-03-03  JWT:
 
 	* Fix failure to set selection anchor point to where mouse-button 1 
@@ -52,7 +61,7 @@
 2024-08-10  JWT:
 
 	* Update from their original vsn# 1.00.02 to 2.00.00, as this fork is a
-	  major release (1st new aterm release in over 20 years)!
+	  major release (1st new aterm release in over 15 years)!
 
 	* Add 3 new non-standard delete functions:
 	  (Delete to EOL, Delete to BOL, & Delete line: escape codes: \E[?3K,
@@ -125,22 +134,27 @@
 
 	  aterm now supports the following additional and modified bindings:
 
-	  Alt+v (from many apps):  Paste primary
+	  Alt+v (from many apps):  Paste primary.
 
-	  Control+v (from most apps):  Paste Clipboard
+	  Control+v (from most apps):  Paste Clipboard.
 
-	  [Shift+]Control+Insert:  Copy selection to Clipboard (terms vary, so we 
-	  support both).
+	  Alt+[:  Start Selection (set anchor).
+
+	  Alt+]:  Complete Selection (select from anchor to cursor position).
+
+	  Shift+Insert:  Paste primary.
+
+	  Control+Insert:  Copy selection to Clipboard.
 
 	  Shift+Ctrl+Insert (from xterm, lxterminal):  Paste Clipboard
 
 	  Shift+Ctrl+c:  Copy selection to Clipboard.
 
-	  Button-1:  Clear selection & set selection anchor
+	  Button-1:  Clear selection & set selection anchor.
 
-	  Button-2:  Past Primary
+	  Button-2:  Past Primary.
 
-	  Shift-Button-2:  Paste Clipboard
+	  Shift-Button-2:  Paste Clipboard.
 
 	  Button-3:  (Select / extend selected) text from anchor to click point.
 

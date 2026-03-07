@@ -9,8 +9,8 @@ aterm (Afterstep XVT) \- a VT102 emulator for the X window system
 .SH "DESCRIPTION" 
 .PP 
 \fBaterm\fP, version \fB1\&.0\&.0\fP, is a colour vt102 terminal emulator,
-based on \fIrxvt\fP 2\&.4\&.8 with Alfredo Kojima\'s additions of fast transparency,
-intended as an \fIxterm\fP(1) replacement for users who do not require
+based on \fIrxvt\fP 2\&.4\&.8 with Alfredo Kojima\'s additions of fast trans-
+parency, intended as an \fIxterm\fP(1) replacement for users who do not require
 features such as Tektronix 4014 emulation and toolkit-style configurability\&.
 As a result, \fBaterm\fP uses much less swap space -- a significant
 advantage on a machine serving many X sessions\&.
@@ -591,14 +591,23 @@ The behaviour of text selection and insertion mechanism is similar to
 Left click at the beginning of the region, drag to the end of the
 region and release; Right click to extend the marked region;
 Left double-click to select a word; Left triple-click to select
-the entire line\&.
+the entire line\&.  You can also select using the keyboard now\&.  Simply
+place the text cursor at the starting point and press \fBAlt-[\fP\&.  Then
+move the text cursor, or wait until it's where you wish to stop, and press
+\fBAlt-]\fP\&.  This will highlight the selected text and place it into
+the PRIMARY paste buffer just as you had dragged the mouse over it\&.
 .IP 
 .IP "\fBInsertion\fP:" 
 Pressing and releasing the Middle mouse button (or \fBShift-Insert\fP or
 \fBAlt-v\fP) in an \fBaterm\fP window causes the current text selection to
 be inserted as if it had been typed on the keyboard\&.  This inserts (pastes)
 the PRIMARY select buffer.  To insert (paste) the content of the system
-CLIPBOARD, you can now press \fBControl-v\fP.
+CLIPBOARD, you can now press \fBControl-v\fP or \fBShift-Middle mouse
+button\fP\&.
+.IP 
+.IP "\fBCopy selection to system CLIPBOARD:\fP:" 
+After selecting text, use \fBShift-Control-C\fP or \fBControl-Insert\fP to
+copy it to the system CLIPBOARD\&.
 .SH "CHANGING FONTS" 
 .PP 
 You can change fonts on-the-fly, which is to say cycle through the default
