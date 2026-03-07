@@ -142,7 +142,7 @@
  * Allow unshifted Next/Prior keys to scroll forward/back
  * (in addition to shift+Next/shift+Prior)       --pjh
  */
-/* #define UNSHIFTED_SCROLLKEYS */
+#define UNSHIFTED_SCROLLKEYS
   
 /*--------------------------------MOUSE---------------------------------*/
 /*
@@ -204,7 +204,7 @@
 /* JWT:PROCESSORS ARE *A LOT* FASTER THESE DAYS, TIME TO UP THESE DEFAULTS!: ;)
    (I COULD BARELY SEE THE LINES WHIZ BY ON MY 10 YEAR OLD ONE)
 */
-#define SCROLLBAR_INITIAL_DELAY 36000
+#define SCROLLBAR_INITIAL_DELAY 360000
 #define SCROLLBAR_CONTINUOUS_DELAY 15000
 
 /*--------------------------------BELL----------------------------------*/
