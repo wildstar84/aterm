@@ -845,7 +845,7 @@ scroll_text(int row1, int row2, int count, int spec)
  */
 /* PROTO */
 void
-scr_add_lines(const unsigned char *str, int nlines, int len)
+scr_add_lines(const unsigned char *str, int nlines, int len, Bool is_cursor_key)
 {
     char            c;
     int             i, j, row, last_col, wherecursor, wrotespecial;
@@ -1023,9 +1023,9 @@ scr_add_lines(const unsigned char *str, int nlines, int len)
 	i = 0;
     else
 	i = 1;
-    if (selection.op && current_screen == selection.screen
-	&& wrotespecial != 0 && (i != wherecursor || i == 0))
-	CLEAR_SELECTION;
+    if (! is_cursor_key && selection.op && current_screen == selection.screen
+			&& wrotespecial != 0 && (i != wherecursor || i == 0))
+		CLEAR_SELECTION;
 
 #ifdef DEBUG_STRICT
     assert(screen.cur.row >= 0);
@@ -1277,6 +1277,7 @@ scr_erase_line(int mode)
 }
 
 /* JWT:ADDED 20260305 TO HANDLE KEYBOARD-SELECTION: */
+/* PROTO */
 void
 scr_kbselection (Time tm, Bool mode)
 {

@@ -114,7 +114,7 @@ static time_t 		last_update_background_request_sec = 0 ;
 static time_t 		last_update_background_request_usec = 0 ;  	 
 static Bool first_background_update = True ;
 static Bool kbselection_on = False;  /* JWT:ADDED 20260305 FOR KEYBOARD-SELECTION. */
-
+static Bool is_cursor_key = False;   /* JWT:TRUE IF JUST MOVES CURSOR (Left Right Home End) */
 
 static void
 timer_get_time (time_t * sec, time_t * usec)
@@ -1481,6 +1481,7 @@ lookup_key(XEvent * ev)
     int             ctrl, meta, shft, len;
     KeySym          keysym = 0;
 
+    is_cursor_key = False;
 /*
  * use Num_Lock to toggle Keypad on/off.  If Num_Lock is off, allow an
  * escape sequence to toggle the Keypad.
@@ -1695,7 +1696,6 @@ lookup_key(XEvent * ev)
 		case XK_bracketright:  /* TO GET NORMAL Alt-] CHAR (\xdd), USE [COMPOSE]'Y */
 			if (kbselection_on)
 				scr_kbselection(ev->xkey.time, True);
-			kbselection_on = False;
 			return;
 		}
 	}
@@ -1780,6 +1780,9 @@ lookup_key(XEvent * ev)
 #endif
 	    case XK_Home:
 		len = strlen(STRCPY(kbuf, KS_HOME));
+#ifndef LINUX_KEYS
+		is_cursor_key = ! (ctrl | shft | meta);
+#endif
 		break;
 
 #ifdef XK_KP_Left
@@ -1799,8 +1802,9 @@ lookup_key(XEvent * ev)
 	    /* FALL THROUGH */
 #endif
 	    case XK_Left:	/* "\033[D" */
-	    case XK_Up:	/* "\033[A" */
 	    case XK_Right:	/* "\033[C" */
+	    is_cursor_key = ! (ctrl | shft | meta);
+	    case XK_Up:	/* "\033[A" */
 	    case XK_Down:	/* "\033[B" */
 		len = 3;
 		STRCPY(kbuf, "\033[@");
@@ -1858,6 +1862,9 @@ lookup_key(XEvent * ev)
 #endif
 	    case XK_End:
 		len = strlen(STRCPY(kbuf, KS_END));
+#ifndef LINUX_KEYS
+		is_cursor_key = ! (ctrl | shft | meta);
+#endif
 		break;
 
 	    case XK_Select:
@@ -2548,6 +2555,7 @@ process_x_event(XEvent * ev)
 
     case SelectionClear:
 	selection_clear(ev->xselection.selection);
+	kbselection_on = False;
 	break;
 
     case SelectionNotify:
@@ -3242,7 +3250,7 @@ process_escape_seq(void)
 	scr_index(UP);
 	break;
     case 'E':
-	scr_add_lines((unsigned char *) "\n\r", 1, 2);
+	scr_add_lines((unsigned char *) "\n\r", 1, 2, False);
 	break;
     case 'G':
 	process_graphics();
@@ -3312,7 +3320,7 @@ process_csi_seq(void)
 	    process_escape_seq();
 	    return;
 	} else if (ch < ' ') {
-	    scr_add_lines(&ch, 0, 1);
+	    scr_add_lines(&ch, 0, 1, False);
 	    return;
 	}
 	if (ch < '@')
@@ -3872,11 +3880,9 @@ main_loop(void)
 		    	break;
 			}
 	    }
-	    scr_add_lines(str, nlines, (cmdbuf_ptr - str));
+	    scr_add_lines(str, nlines, (cmdbuf_ptr - str), is_cursor_key);
 		if( ch == '\r' ) 
-		{	
 			scr_refresh(refresh_type);
-		}
 	} else {
 	    switch (ch) {
 	    case 005:		/* terminal Status */
