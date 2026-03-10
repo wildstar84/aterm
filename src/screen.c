@@ -107,13 +107,9 @@ ENC_METHOD encoding_method;
     if (selection.op)					\
 	selection_check(x)
 #define CLEAR_SELECTION					\
-    selection.beg.row = selection.beg.col		\
-	= selection.end.row = selection.end.col = 0
+    selection_clear(XA_PRIMARY, False)
 #define CLEAR_ALL_SELECTION				\
-    selection.beg.row = selection.beg.col		\
-	= selection.mark.row = selection.mark.col	\
-	= selection.end.row = selection.end.col = 0
-
+    selection_clear(XA_PRIMARY, True)
 #define ROW_AND_COL_IS_AFTER(A, B, C, D)				\
     (((A) > (C)) || (((A) == (C)) && ((B) > (D))))
 #define ROW_AND_COL_IS_BEFORE(A, B, C, D)				\
@@ -1285,7 +1281,7 @@ scr_kbselection (Time tm, Bool mode)
 		selection_extend_colrow(screen.cur.col, screen.cur.row+TermWin.view_start, 0,0,0);
 		selection_make(tm, 0);
 	} else {
-		selection_clear(XA_PRIMARY);
+		CLEAR_ALL_SELECTION;
 		selection_start_colrow(screen.cur.col, screen.cur.row);
 	}
 }
@@ -3050,7 +3046,7 @@ SX11Impl::getClipUTF8(long id)
  */
 /* PROTO */
 void
-selection_clear(Atom selbuffer)
+selection_clear(Atom selbuffer, Bool clear_mark_also)
 {
     D_SELECT((stderr, "selection_clear()"));
 
@@ -3069,7 +3065,9 @@ selection_clear(Atom selbuffer)
 
     selection.text = NULL;
     selection.len = 0;
-    /* JWT:CLEAR_SELECTION_SAVE_MARK: */
+    /* JWT:CLEAR_SELECTION: */
+    if (clear_mark_also)
+        selection.mark.row = selection.mark.col = 0;
     selection.beg.row = selection.end.row	= selection.mark.row;
 	selection.beg.col = selection.end.col = selection.mark.col;
 }
@@ -3095,7 +3093,7 @@ selection_make(Time tm, unsigned int key_state)
     case SELECTION_INIT:
 /*	JWT:REPLACED BY NEXT 2 SO LBUTTON1 CAN SET SELECTION ANCHOR!: CLEAR_SELECTION; */
 	if (selection.clicks==1)
-		selection_clear(XA_PRIMARY);;
+		CLEAR_SELECTION;
     /* FALLTHROUGH */
     case SELECTION_BEGIN:
 	selection.op = SELECTION_DONE;

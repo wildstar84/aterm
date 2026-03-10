@@ -113,7 +113,6 @@ static char    *v_bufend;	/* end of physical buffer */
 static time_t 		last_update_background_request_sec = 0 ;  	
 static time_t 		last_update_background_request_usec = 0 ;  	 
 static Bool first_background_update = True ;
-static Bool kbselection_on = False;  /* JWT:ADDED 20260305 FOR KEYBOARD-SELECTION. */
 static Bool is_cursor_key = False;   /* JWT:TRUE IF JUST MOVES CURSOR (Left Right Home End) */
 
 static void
@@ -1689,13 +1688,10 @@ lookup_key(XEvent * ev)
 			return;
 		/* JWT:ADDED 20260305 - MAKE Alt+[,] TURN ON,OFF KEYBOARD SELECTION: */
 		case XK_bracketleft:  /* TO GET NORMAL Alt-[ CHAR (\xdb), USE [COMPOSE]^U */
-			if (! kbselection_on)
-				scr_kbselection(ev->xkey.time, False);
-			kbselection_on = True;
+			scr_kbselection(ev->xkey.time, False);
 			return;
 		case XK_bracketright:  /* TO GET NORMAL Alt-] CHAR (\xdd), USE [COMPOSE]'Y */
-			if (kbselection_on)
-				scr_kbselection(ev->xkey.time, True);
+			scr_kbselection(ev->xkey.time, True);
 			return;
 		}
 	}
@@ -2554,8 +2550,7 @@ process_x_event(XEvent * ev)
 	break;
 
     case SelectionClear:
-	selection_clear(ev->xselection.selection);
-	kbselection_on = False;
+	selection_clear(ev->xselection.selection, False);
 	break;
 
     case SelectionNotify:
@@ -3023,7 +3018,6 @@ process_x_event(XEvent * ev)
 #endif
 			if (!bypass_keystate) {  /* JWT:DON'T DO IF MODIFIED (IE. Shift+Button3) */
 				selection_make(ev->xbutton.time, ev->xbutton.state);
-				kbselection_on = False;
 				return;  /* JWT:SO WE DON'T CLEAR SELECTION LATER BELOW! */
 			}
 		case Button3:
@@ -3274,7 +3268,6 @@ process_escape_seq(void)
 	break;
     case 'c':
 	scr_poweron();
-	kbselection_on = False;
 	break;
     case 'n':
 	scr_charset_choose(2);
