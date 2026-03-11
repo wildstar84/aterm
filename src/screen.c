@@ -3136,7 +3136,8 @@ selection_make(Time tm, unsigned int key_state)
 
     MIN_IT(end_col, TermWin.bcol);	/* CHANGE */
     for (; col < end_col; col++)
-		*str++ = *t++;
+		if (t)  /* JWT:TEST ADDED 20260309 TO PREVENT SEGFAULT IN SHIFT-QUAD-CLICK W/MOUSE-REPORTING ON!: */
+			*str++ = *t++;
 
     if (end_col != selection.end.col)
 		*str++ = '\n';
@@ -3737,7 +3738,7 @@ mouse_tracking(int report, int x, int y, int firstrow, int lastrow)
 {
 /* TODO */
 }
-
+
 /* ------------------------------------------------------------------------- *
  *                              DEBUG ROUTINES                               *
  * ------------------------------------------------------------------------- */

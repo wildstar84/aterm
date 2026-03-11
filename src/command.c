@@ -2819,8 +2819,9 @@ process_x_event(XEvent * ev)
 		    mouse_report(&(ev->xbutton));
 #endif				/* MOUSE_REPORT_DOUBLECLICK */
 			MEvent.time = ev->xbutton.time;
-			return;
-		} else if (!bypass_keystate) {
+		}
+		if ((! reportmode && ! bypass_keystate)
+		        || ((PrivateModes & PrivMode_mouse_report) && bypass_keystate)) {
 		    if (ev->xbutton.button != MEvent.button)
 			MEvent.clicks = 0;
 		    switch (ev->xbutton.button) {
@@ -2837,8 +2838,11 @@ process_x_event(XEvent * ev)
 			    MEvent.clicks++;
 			else
 			    MEvent.clicks = 1;
-			selection_click(MEvent.clicks, ev->xbutton.x,
-					ev->xbutton.y);
+			selection_click(MEvent.clicks, ev->xbutton.x,	ev->xbutton.y);
+			/* JWT:HACK TO MAKE QUAD-CLICK WORK CORRECTLY. */
+			if (MEvent.clicks == 4 && (PrivateModes & PrivMode_mouse_report)
+					&& bypass_keystate)
+				selection_extend_colrow(TermWin.bcol-1, TermWin.nrow, 1, 1, 0);
 			MEvent.button = Button1;
 			break;
 
@@ -2853,8 +2857,9 @@ process_x_event(XEvent * ev)
 		    }
 			MEvent.time = ev->xbutton.time;
 			return;
+		} else if (reportmode)
+			return;
 		}
-	    }
 	}
 	if (isScrollbarWindow(ev->xany.window)) {
 	    scrollbar_setNone();
@@ -3005,21 +3010,15 @@ process_x_event(XEvent * ev)
 	     * dumb hack to compensate for the failure of click-and-drag
 	     * when overriding mouse reporting
 	     */
-		if ((PrivateModes & PrivMode_mouse_report) &&
-		    (bypass_keystate) &&
-		    (ev->xbutton.button == Button1) &&
-		    (MEvent.clicks <= 1))
-		    selection_extend(ev->xbutton.x, ev->xbutton.y, 0);
-
+		if ((PrivateModes & PrivMode_mouse_report) && bypass_keystate) {
+		    if (ev->xbutton.button == Button1 || ev->xbutton.button == Button3)
+				selection_make(ev->xbutton.time, ev->xbutton.state);
+		}
 		switch (ev->xbutton.button) {
 		case Button1:
 #ifdef MENUBAR
 		    menubar_menu_show(False, 0, 0);
 #endif
-			if (!bypass_keystate) {  /* JWT:DON'T DO IF MODIFIED (IE. Shift+Button3) */
-				selection_make(ev->xbutton.time, ev->xbutton.state);
-				return;  /* JWT:SO WE DON'T CLEAR SELECTION LATER BELOW! */
-			}
 		case Button3:
 			if (!bypass_keystate)  /* JWT:DON'T DO IF MODIFIED (IE. Shift+Button3) */
 				selection_make(ev->xbutton.time, ev->xbutton.state);

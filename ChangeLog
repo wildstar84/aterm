@@ -1,3 +1,20 @@
+2026-03-09  JWT:
+
+	* Fix Shift-Mousebuttons 1 and 3 to work like their non-shifted companions 
+	  when mouse-reporting is active (the way the aterm code claims it is 
+	  supposed to.  This also now includes Shift+Ctrl+Button1 as it will now 
+	  activate the popup menu (if any) just like the normal Ctrl+Button1 would.
+	  Select dragging and double/triple/quadruple-click selects also work with 
+	  mouse-reporting active (if the Shift-key is held).
+
+	* Eliminated a recently-added variable (not actually needed) and made 
+	  Alt-[ and Alt-] keyboard-select sequences repeatable (Should now work 
+	  like the corresponding Button-1 click and Button-3 click respectively.
+
+	* Clearing PRIMARY selection when cleared on the screen should now 
+	  be handled correctly in all cases, and simplified that aspect of the 
+	  code.
+
 2026-03-07  JWT:
 
 	* Change (improve) scrolling defaults in features.h (users are free to 
