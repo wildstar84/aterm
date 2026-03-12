@@ -1607,43 +1607,37 @@ lookup_key(XEvent * ev)
 		return;
 		break;
 	    }
-	} else if (PrivateModes & PrivMode_ShiftKeys) {  /* JWT:HANDLE OUR Shift-key SEQUENCES: */
+	} else if (ctrl && (PrivateModes & PrivMode_ShiftKeys)) {
+	    /* JWT:HANDLE OUR Shift-Ctrl-key SEQUENCES: */
 	    switch (keysym) {
 	    /* normal XTerm key bindings */
 		case XK_C: /* JWT:MAKE Shift+Ctrl+C COPY SELECTION TO CLIPBOARD (WE CAN'T USE Ctrl+c! ;) */
-			if (ctrl) {
-				selection_to_clipboard();
-				return;
-			}
+			selection_to_clipboard();
+			return;
+		case XK_V: /* JWT:MAKE Shift+Ctrl+v ALSO PASTE CLIPBOARD ;) */
+			selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, aterm_XA_CLIPBOARD);
+			return;
 	    case XK_Insert:  /* JWT:MAKE Shift+Ctrl+Insert PASTE CLIPBOARD (like lxterminal/"dtterm"): */
-		    if (ctrl) {
-				selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, aterm_XA_CLIPBOARD);
-				return;
-			}
+			selection_request(ev->xkey.time, ev->xkey.x, ev->xkey.y, aterm_XA_CLIPBOARD);
+			return;
 	    case XK_K:
-		    if (ctrl) {  /* JWT:MAKE Shift+Ctrl+K ERACE TO BEGINNING OF LINE: */
-				scr_erase_line(4);
-				return;
-			}
+			scr_erase_line(4);
+			return;
 #ifdef MENUBAR
 		case XK_M: /* JWT:MAKE Shift-Ctrl-M TOGGLE THE VISIBILITY OF THE MENUBAR(S): */
 		{
-		    if (ctrl) {
-				int toggled = menubar_mapping(0);
-				if (toggled == 0)
-					menubar_mapping(1);
-				return;
-			}
+			int toggled = menubar_mapping(0);
+			if (toggled == 0)
+				menubar_mapping(1);
+			return;
 		}
 #endif
 		case XK_S: /* JWT:MAKE Shift-Ctrl-S TOGGLE THE VISIBILITY OF THE SCROLLBAR: */
 		{
-		    if (ctrl) {
-				int toggled = scrollbar_mapping(0);
-				if (toggled == 0)
-					scrollbar_mapping(1);
-				return;
-			}
+			int toggled = scrollbar_mapping(0);
+			if (toggled == 0)
+				scrollbar_mapping(1);
+			return;
 		}
 		}
 	}
@@ -1674,6 +1668,10 @@ lookup_key(XEvent * ev)
 			return;
 		case XK_k:  /* JWT:MAKE Ctrl+k ERACE TO EOL: */
 			scr_erase_line(3);
+			return;
+		case XK_t:  /* JWT:MAKE Ctrl+t (Cut) DELETE SELECTED TEXT (ON COMMAND-LINE): */
+			/* NOTE: ONLY SELECTED TEXT PAST THE PROMPT ON THE COMMAND LINE IS CUT TO CLIPBOARD: */
+			scr_erase_line(6);
 			return;
 		case XK_Insert:	/* JWT:MAKE Ctrl+Insert COPY SELECTION TO CLIPBOARD: */
 			selection_to_clipboard();
@@ -3306,9 +3304,9 @@ process_csi_seq(void)
 
 	if (nargs < ESC_ARGS)
 	    arg[nargs++] = n;
-	if (ch == '\b') {
+	if (ch == '\b')
 	    scr_backspace();
-	} else if (ch == 033) {
+	else if (ch == 033) {
 	    process_escape_seq();
 	    return;
 	} else if (ch < ' ') {
@@ -3945,7 +3943,11 @@ tt_write(const unsigned char *d, int len)
 				if (toggled == 0)
 					scrollbar_mapping(1);
 				return;
-			} else if (d[1] == 118 || d[1] == 86) { /* "^^v" (Ctrl-v): (LOWER-CASE=NO Shift!) Paste CLIPBOARD: */
+			} else if (d[1] == 116) { /* "^^t" (Ctrl-t): (LOWER-CASE=NO Shift!) (Cut) DELETE SELECTED TEXT: */
+				/* NOTE: ONLY SELECTED TEXT PAST THE PROMPT ON THE COMMAND LINE IS CUT TO CLIPBOARD: */
+				scr_erase_line(6);
+				return;
+			} else if (d[1] == 118 || d[1] == 86) { /* "^^[vV]" (Ctrl-[vV]): Paste PRIMARY|CLIPBOARD: */
 				/* BUT IN THIS CASE WE ACCEPT EITHER (WITH OR WITHOUT Shift): */
 				selection_request(CurrentTime, 0, 0, aterm_XA_CLIPBOARD);
 				return;

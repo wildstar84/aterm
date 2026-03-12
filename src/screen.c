@@ -1197,7 +1197,7 @@ scr_erase_line(int mode)
     RESET_CHSTAT;
     if (Gr_Displayed())
 	Gr_scroll(0);
-    CHECK_SELECTION(1);
+    CHECK_SELECTION(mode < 6 ? 1 : 0);
 
     if (screen.flags & Screen_WrapNext)
 	screen.flags &= ~Screen_WrapNext;
@@ -1212,6 +1212,7 @@ scr_erase_line(int mode)
 	    || ROWCOL_IN_ROW_ON_OR_AFTER(selection.end, screen.cur))
 	    CLEAR_SELECTION;
 	break;
+
     case 1:   /* erase to beginning of line */
 	col = 0;
 	num = screen.cur.col + 1;
@@ -1219,6 +1220,7 @@ scr_erase_line(int mode)
 	    || ROWCOL_IN_ROW_ON_OR_BEFORE(selection.end, screen.cur))
 	    CLEAR_SELECTION;
 	break;
+
     case 2:   /* erase whole line */
 	col = 0;
 	num = TermWin.bcol;
@@ -1228,14 +1230,15 @@ scr_erase_line(int mode)
 	    CLEAR_SELECTION;
 	break;
 	/* --- JWT:ADDED SPECIAL PRIVATE DELETE MODES: ---
-           3=DELETE-TO-EOL, 4=DELETE-TO-BOL, and 5=DELETE LINE!:
+           3=DELETE-TO-EOL, 4=DELETE-TO-BOL, 5=DELETE LINE, 6=CUT SELECTION TO CLIPBOARD!:
            IN OUR CASES, "LINE" IS JUST WHAT'S BEEN TYPED IN, NOT THE ENTIRE LINE,
            AND NOT JUST ERASE IT ON THE SCREEN UNLIKE THE STANDARD Esc[0|1|2]K SEQUENCES DO)
 	*/
+
     case 5:   /* delete whole line: */
     case 3:   /* delete to end of line: */
 	col = screen.cur.col;
-	num = screen.tlen[row] - col;
+	num = ((screen.tlen[row] < 0) ? TermWin.bcol : screen.tlen[row]) - col;
 	if (num > 0) {
 		kbbuf = MALLOC((strlen(delseq) * num * sizeof(char)) + 1);
 		kbidx = 0;
@@ -1249,6 +1252,7 @@ scr_erase_line(int mode)
 	}
 	if (mode != 5)
 		return;
+
     case 4:   /* delete to beginning of line: */
 	col = screen.cur.col;
 	kbbuf = MALLOC((strlen(bsseq) * col * sizeof(char)) + 1);
@@ -1265,6 +1269,41 @@ scr_erase_line(int mode)
 	tt_write(kbbuf, kbidx);
 	free(kbbuf);
 	return;
+
+	case 6:   /* "Cut" (any editable selected text in the line to CLIPBOARD and delete): */
+	/* NOTE:Cursor must be OUTSIDE of the selection! */
+	if (selection.end.row != screen.cur.row || selection.len <= 0)
+		return;
+	col = screen.cur.col;
+	/* scr_gotorc(0, selection.end.col, R_RELATIVE); */
+	num = screen.cur.col - selection.end.col;
+	int num2 = selection.len;
+	/* MOVE CURSOR TO END (RIGHT) OF SELECTION VIA SIMULATED LEFT/RIGHT ARROW-KEY: */
+	/* (using scr_gotorc(0, selection.end.col, R_RELATIVE) DOES *NOT* WORK HERE!) */
+	const unsigned char * arrowseq = (num > 0) ? "\033[D" : "\033[C"; /* (? left : right) */
+	if (num != 0) {
+		if (num < 0)
+			num = -1 * num;  /* abs() */
+		kbidx = 0;
+		kbbuf = MALLOC((strlen(arrowseq) * num * sizeof(char)) + 1);
+		for (i = 0; i < num; i++)
+			tt_write(arrowseq,4);
+		free(kbbuf);
+	}
+	selection_to_clipboard();
+	CLEAR_ALL_SELECTION;  /* CURSOR SET & SELECTION LENGTH SAVED *BEFORE* HERE! */
+	/* JWT:BACKSPACE OUT THE CHARACTERS IN THE SELECTION (START AT END & REMOVE selection.len CHARS): */
+	kbbuf = MALLOC((strlen(bsseq) * num2 * sizeof(char)) + 1);
+	kbidx = 0;
+	for (i = 0; i < num2; i++) {
+		for (j = 0; j < strlen(bsseq); j++)
+			kbbuf[kbidx++] = bsseq[j];
+	}
+	kbbuf[kbidx] = '\0';
+	tt_write(kbbuf, kbidx);
+	free(kbbuf);
+	return;
+
     default:
 	return;
     }

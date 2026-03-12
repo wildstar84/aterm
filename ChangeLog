@@ -1,3 +1,11 @@
+2026-03-11  JWT:
+
+	* Add a "Cut" option to delete any selected characters from the command-
+	  line (ones the user typed in or can edit).  Option is triggered by 
+	  Ctrl-t, and can be added to menubars as "^^t".  Any string "cut" will be 
+	  copied to the system CLIPBOARD.  The long description would be: 
+	  "Cut selected characters to CLIPBOARD".
+
 2026-03-09  JWT:
 
 	* Fix Shift-Mousebuttons 1 and 3 to work like their non-shifted companions 

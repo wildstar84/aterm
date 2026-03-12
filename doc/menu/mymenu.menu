@@ -58,6 +58,7 @@
 #{-}
 #This sends a Control-C (Shift+Control+c) as if user typed this sequence:
 {Copy}{^C} ^^C
+{Cut}{^t} ^^t
 {-}
 #This sends an Alt+v as if user typed this sequence:
 {Paste Primary}{@v} ^@v
@@ -108,6 +109,9 @@
 {reset BG} ^@\E]49;^G
 #END OF SUBMENU ITEMS, SUBSEQUENT ITEMS ADDED TO MAIN "Options" MENU:
 ../
+{Underline} ^@\E[4m^G
+{Bold} ^@\E[1m^G
+{Normal} ^@\E[0m^G
 {Reverse video} ^@\E[?5t^G
 {Auto-wrapping} ^@\E[?7t^G
 {-}
