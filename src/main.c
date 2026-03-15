@@ -1004,7 +1004,7 @@ resize_window1(unsigned int width, unsigned int height)
 
     /* scr_reset only works on the primary screen */
 	if (!first_time) {	/* this is not the first time thru */
-	    selection_clear(XA_PRIMARY);
+	    selection_clear(XA_PRIMARY, False);
 	    curr_screen = scr_change_screen(PRIMARY);
 	}
 
