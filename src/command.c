@@ -1551,7 +1551,7 @@ lookup_key(XEvent * ev)
 	    keysym += (XK_F11 - XK_F1);
 	    shft = 0;		/* turn off Shift */
 	} else if (!ctrl && !meta && (PrivateModes & PrivMode_ShiftKeys)) {
-	    int             lnsppg = TermWin.nrow * 4 / 5;
+	    int lnsppg = TermWin.nrow * 4 / 5;
 
 #ifdef PAGING_CONTEXT_LINES
 	    lnsppg = TermWin.nrow - PAGING_CONTEXT_LINES;
@@ -2603,7 +2603,7 @@ process_x_event(XEvent * ev)
 				if( IsTransparentPixmap() ) 	   
 				{	
 					Pixmap p;
-					if( read_32bit_property (Xroot, _XROOTPMAP_ID, &p) )
+					if( read_32bit_property (Xroot, _XROOTPMAP_ID, (CARD32*)&p) )
 					{	
 						if( p != TermWin.background.srcPixmap ) 
 							SetSrcPixmap( p );

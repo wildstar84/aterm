@@ -1946,11 +1946,11 @@ check_extended_wm_hints_support()
 {
 	memset( &ExtWM, 0x00, sizeof(ExtWM));
 
-	if( read_32bit_property (Xroot, _XA_NET_SUPPORTING_WM_CHECK, &ExtWM.supporting_wm_check) )
+	if( read_32bit_property (Xroot, _XA_NET_SUPPORTING_WM_CHECK, (CARD32*)&ExtWM.supporting_wm_check) )
 		if( ExtWM.supporting_wm_check != None ) 
 		{	
 			Window w;
-			if( !read_32bit_property (ExtWM.supporting_wm_check, _XA_NET_SUPPORTING_WM_CHECK, &w) )
+			if( !read_32bit_property (ExtWM.supporting_wm_check, _XA_NET_SUPPORTING_WM_CHECK, (CARD32*)&w) )
 				ExtWM.supporting_wm_check = None ;
 			else if( w != ExtWM.supporting_wm_check ) 
 				ExtWM.supporting_wm_check = None ;
