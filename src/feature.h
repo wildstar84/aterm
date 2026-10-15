@@ -141,8 +141,9 @@
 /*
  * Allow unshifted Next/Prior keys to scroll forward/back
  * (in addition to shift+Next/shift+Prior)       --pjh
+ * JWT:NOTE:THIS WILL PREVENT THESE KEYS FROM SCROLLING IN vi!!!
  */
-#define UNSHIFTED_SCROLLKEYS
+/* #define UNSHIFTED_SCROLLKEYS */
   
 /*--------------------------------MOUSE---------------------------------*/
 /*
