@@ -1,10 +1,29 @@
+2026-10-15  JWT:
+
+	* Fix type-casting compiler-error introduced in newer gcc version(s) now 
+	  used in Debian's "Trixie" version of Linux.
+
+	* Change (revert) the default for setting "UNSHIFTED_SCROLLKEYS" back to 
+	  "commented out" (off) in the user-configurable "features.h" header file 
+	  since turning it on (uncommenting) resulted in not being able to use 
+	  the [PgUp] (Prev) and [PgDn] (Next) keys to scroll the text when using 
+	  vi, and possible other screen-editing apps. (very annoying to me, as 
+	  xterm doesn't have this issue!)  Users can always uncomment when 
+	  building, if desired!  A note was added in features.h warning of this 
+	  side-effect.
+
 2026-03-11  JWT:
 
 	* Add a "Cut" option to delete any selected characters from the command-
 	  line (ones the user typed in or can edit).  Option is triggered by 
 	  Ctrl-t, and can be added to menubars as "^^t".  Any string "cut" will be 
 	  copied to the system CLIPBOARD.  The long description would be: 
-	  "Cut selected characters to CLIPBOARD".
+	  "Cut selected characters to CLIPBOARD".  NOTE:  If selection starts 
+	  on non-editable text (text above the current line or before the shell 
+	  prompt), Cut will copy the entire selected text to the CLIPBOARD but 
+	  only the editable text selected on the "current" line (shell-prompt line) 
+	  will be deleted.  Users are recommended to only select text on the 
+	  (editable) line following the shell-prompt when using Cut.
 
 2026-03-09  JWT:
 
@@ -29,12 +48,12 @@
 	  change as better suits them).
 
 	* Fix failure to clear (PRIMARY) selection when cleared on the screen via 
-	  Alt-[ or Mouse-button press on text area if user does not then select 
+	  Alt-[ or Mouse-button-1 press on text area if user does not then select 
 	  something else.
 
 2026-03-03  JWT:
 
-	* Fix failure to set selection anchor point to where mouse-button 1 
+	* Fix failure to set selection anchor point to where mouse-button-1 
 	  was clicked the first time after startup or screen reset (was 
 	  wrongly using 0,0 - the upper-left corner as starting point).
 
@@ -177,7 +196,7 @@
 
 	  Button-1:  Clear selection & set selection anchor.
 
-	  Button-2:  Past Primary.
+	  Button-2:  Paste Primary.
 
 	  Shift-Button-2:  Paste Clipboard.
 

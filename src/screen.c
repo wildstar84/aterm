@@ -1271,7 +1271,7 @@ scr_erase_line(int mode)
 	return;
 
 	case 6:   /* "Cut" (any editable selected text in the line to CLIPBOARD and delete): */
-	/* NOTE:Cursor must be OUTSIDE of the selection! */
+	/* NOTE:Cursor must be on the line containing the selection (at least the end of it)! */
 	if (selection.end.row != screen.cur.row || selection.len <= 0)
 		return;
 	col = screen.cur.col;
